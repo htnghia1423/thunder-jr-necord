@@ -1,0 +1,53 @@
+name: Dev to Main
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    if: github.head_ref == 'dev'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Ensure source branch is dev
+        run: |
+          if [[ "${{ github.head_ref }}" != "dev" ]]; then
+            echo "Only the dev branch can be merged into main"
+            exit 1
+          fi
+
+      - name: Run ESLint
+        run: bun eslint . --ext .ts
+
+      - name: Run Tests
+        run: bun test
+
+      - name: Build
+        run: bun run build
+
+      - name: Comment PR
+        if: success()
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ All checks have passed successfully. The dev branch is ready to be merged into main. Remember to create a version tag after merging.'
+            })
