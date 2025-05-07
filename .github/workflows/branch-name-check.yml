@@ -2,8 +2,7 @@ name: Branch Name Check
 
 on:
   push:
-  pull_request:
-    types: [opened, synchronize, reopened]
+    # Only check when pushing, not during PR
 
 jobs:
   check-branch-name:
@@ -14,24 +13,26 @@ jobs:
           BRANCH_NAME="${{ github.ref_name }}"
           echo "Branch name: $BRANCH_NAME"
 
+          # Skip checks for main branches
+          if [[ "$BRANCH_NAME" == "main" || "$BRANCH_NAME" == "dev" ]]; then
+            echo "This is a main branch, skipping check ✅"
+            exit 0
+          fi
+
           # Define the allowed branch name patterns
-          MAIN_BRANCH="main"
-          DEV_BRANCH="dev"
           FEATURE_PATTERN="^feature/[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
           TEST_PATTERN="^test/[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
           FIX_PATTERN="^fix/[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
 
           # Check if the branch name matches any of the allowed patterns
-          if [[ "$BRANCH_NAME" == "$MAIN_BRANCH" || 
-                "$BRANCH_NAME" == "$DEV_BRANCH" || 
-                "$BRANCH_NAME" =~ $FEATURE_PATTERN || 
+          if [[ "$BRANCH_NAME" =~ $FEATURE_PATTERN || 
                 "$BRANCH_NAME" =~ $TEST_PATTERN ||
                 "$BRANCH_NAME" =~ $FIX_PATTERN ]]; then
             echo "Branch name is valid! ✅"
             exit 0
           else
             echo "Branch name is not valid! ❌"
-            echo "Branch name must be 'main', 'dev', or follow the patterns:"
+            echo "Branch name must follow one of these patterns:"
             echo "- feature/feature-name (lowercase with hyphens only)"
             echo "- test/test-name (lowercase with hyphens only)"
             echo "- fix/fix-name (lowercase with hyphens only)"
