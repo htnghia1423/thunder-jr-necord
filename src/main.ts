@@ -10,9 +10,11 @@ export async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule);
 
   app.enableShutdownHooks();
+  return app;
 }
 
-// Only run bootstrap when this file is executed directly
-if (import.meta.path.includes('main.ts')) {
+// This file is directly executed during normal operation, but imported in tests
+// In tests, the bootstrap function will be called explicitly
+if (process.env.NODE_ENV !== 'test') {
   bootstrap();
 }

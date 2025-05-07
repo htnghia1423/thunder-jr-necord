@@ -51,7 +51,7 @@ jobs:
         run: bun eslint "src/**/*.ts" --ext .ts --fix
 
       - name: Test with coverage
-        run: bun run test:cov
+        run: NODE_ENV=test bun run test:cov
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
