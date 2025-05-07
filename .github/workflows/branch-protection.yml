@@ -15,20 +15,14 @@ jobs:
 
           echo "Pull request: $HEAD_BRANCH -> $BASE_BRANCH"
 
-          # Check merge flow:
-          # feature/* -> dev, test/* -> dev, fix/* -> dev: Allowed
-          # dev -> main: Allowed
+          # Check merge flow rules only:
+          # Any branch -> dev: Allowed (will be validated by PR review)
+          # Only dev -> main: Allowed
           # main -> dev: Allowed (for backporting fixes)
-          # feature/* -> main, test/* -> main, fix/* -> main: NOT allowed
 
           if [[ "$BASE_BRANCH" == "main" && "$HEAD_BRANCH" != "dev" ]]; then
             echo "ERROR: Only 'dev' branch can be merged into 'main'! ❌"
             echo "Please create a pull request to 'dev' branch first."
-            exit 1
-          fi
-
-          if [[ "$BASE_BRANCH" == "dev" && ! "$HEAD_BRANCH" =~ ^(feature|test|fix)/ && "$HEAD_BRANCH" != "main" ]]; then
-            echo "ERROR: Only 'feature/*', 'test/*', 'fix/*', or 'main' branches can be merged into 'dev'! ❌"
             exit 1
           fi
 

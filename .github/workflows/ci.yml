@@ -12,6 +12,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -24,17 +26,16 @@ jobs:
       - name: Check commit message format
         if: github.event_name == 'pull_request'
         run: |
-          PR_TITLE="${{ github.event.pull_request.title }}"
-          echo "Checking PR title: $PR_TITLE"
+          # Lấy commit cuối cùng của PR để kiểm tra
+          LATEST_COMMIT_MSG=$(git log -1 --pretty=%B)
+          echo "Checking last commit message: $LATEST_COMMIT_MSG"
 
-          # Check if PR title follows the pattern
-          if [[ $PR_TITLE =~ ^(feat|fix|docs|style|refactor|test|chore|add|update|remove):.+ ]]; then
-            echo "PR title follows conventional commit format ✅"
-          else
-            echo "PR title must follow conventional commit format: <type>: <description>"
+          # Kiểm tra commit message qua commitlint
+          echo "$LATEST_COMMIT_MSG" | bun commitlint || {
+            echo "Commit message must follow conventional commit format: <type>: <description>"
             echo "Types: feat, fix, docs, style, refactor, test, chore, add, update, remove"
             exit 1
-          fi
+          }
 
       - name: Run ESLint
         run: bun eslint . --ext .ts

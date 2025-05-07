@@ -16,8 +16,7 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    if: startsWith(github.head_ref, 'feature/')
-
+    # Không giới hạn chỉ cho feature branch
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,14 +29,6 @@ jobs:
 
       - name: Install dependencies
         run: bun install
-
-      - name: Validate branch naming
-        run: |
-          BRANCH_NAME=${{ github.head_ref }}
-          if [[ ! $BRANCH_NAME =~ ^feature/ ]]; then
-            echo "Branch should start with 'feature/'"
-            exit 1
-          fi
 
       - name: Validate commits
         run: |
