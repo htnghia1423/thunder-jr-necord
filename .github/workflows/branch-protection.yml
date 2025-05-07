@@ -26,4 +26,5 @@ jobs:
             exit 1
           fi
 
+          # Allow merges from 'main' to 'dev' for backporting fixes, in addition to 'feature/*', 'test/*', and 'fix/*' branches.
           echo "Branch flow is valid! ✅"
