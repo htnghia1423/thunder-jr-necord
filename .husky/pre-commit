@@ -1,2 +1,4 @@
 #!/bin/sh
+. "$(dirname -- "$0")/_/husky.sh"
+
 bun lint-staged || echo "Linting had issues, but continuing anyway"
