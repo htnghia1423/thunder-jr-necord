@@ -21,7 +21,6 @@ export default [
       '@typescript-eslint': tseslint,
       prettier: prettierPlugin,
     },
-    extends: [prettierConfig],
     rules: {
       '@typescript-eslint/interface-name-prefix': 'off',
       '@typescript-eslint/explicit-function-return-type': 'off',
@@ -30,4 +29,5 @@ export default [
       'prettier/prettier': 'error',
     },
   },
+  prettierConfig,
 ];
