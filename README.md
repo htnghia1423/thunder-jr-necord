@@ -52,7 +52,7 @@ All branches must follow these naming patterns:
 
 2. **Merging to Dev Branch**
 
-   - Only `feature/*`, `test/*` and `fix/*` branches can be merged into `dev`
+   - Only `feature/*`, `test/*`, `fix/*` and `main` branches can be merged into `dev`
    - Create a Pull Request from your branch to `dev`
    - GitHub Actions will check branch name, code quality, and merge flow
    - After successful checks, merge into the `dev` branch
@@ -70,6 +70,12 @@ All branches must follow these naming patterns:
    git tag -a v1.0.0 -m "Version 1.0.0"
    git push origin v1.0.0
    ```
+
+4. **Backporting to Dev**
+
+   - Changes in `main` can be merged back to `dev` if needed
+   - This is useful for synchronizing hotfixes from production back to development
+   - Create a Pull Request from `main` to `dev`
 
 ### Commit Conventions
 

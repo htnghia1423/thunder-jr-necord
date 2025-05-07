@@ -18,6 +18,7 @@ jobs:
           # Check merge flow:
           # feature/* -> dev, test/* -> dev, fix/* -> dev: Allowed
           # dev -> main: Allowed
+          # main -> dev: Allowed (for backporting fixes)
           # feature/* -> main, test/* -> main, fix/* -> main: NOT allowed
 
           if [[ "$BASE_BRANCH" == "main" && "$HEAD_BRANCH" != "dev" ]]; then
@@ -26,8 +27,8 @@ jobs:
             exit 1
           fi
 
-          if [[ "$BASE_BRANCH" == "dev" && ! "$HEAD_BRANCH" =~ ^(feature|test|fix)/ ]]; then
-            echo "ERROR: Only 'feature/*', 'test/*', or 'fix/*' branches can be merged into 'dev'! ❌"
+          if [[ "$BASE_BRANCH" == "dev" && ! "$HEAD_BRANCH" =~ ^(feature|test|fix)/ && "$HEAD_BRANCH" != "main" ]]; then
+            echo "ERROR: Only 'feature/*', 'test/*', 'fix/*', or 'main' branches can be merged into 'dev'! ❌"
             exit 1
           fi
 
