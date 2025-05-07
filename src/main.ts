@@ -3,7 +3,7 @@ import { AppModule } from '@/app.module';
 import { Logger } from '@nestjs/common';
 import pkg from '../package.json';
 
-async function bootstrap() {
+export async function bootstrap() {
   const logger = new Logger('Bootstrap');
 
   logger.log(`Starting ${pkg.displayName} v${pkg.version}`);
@@ -12,4 +12,7 @@ async function bootstrap() {
   app.enableShutdownHooks();
 }
 
-bootstrap();
+// Only run bootstrap when this file is executed directly
+if (import.meta.path.includes('main.ts')) {
+  bootstrap();
+}

@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ReadyEvent } from './ready.event';
+import { ReadyEvent } from '@/events/ready';
 
 @Module({
   providers: [ReadyEvent],

@@ -1,5 +1,5 @@
 [test]
-preload = "./setup.ts"
+# preload = "./setup.ts"
 
 [build]
 minify = true

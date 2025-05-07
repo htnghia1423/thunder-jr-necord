@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { NecordModule } from 'necord';
 import { IntentsBitField } from 'discord.js';
-import { BotModule } from './bot.module';
+import { BotModule } from '@/bot.module';
 
 @Module({
   imports: [

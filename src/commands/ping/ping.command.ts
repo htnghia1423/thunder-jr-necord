@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Context, SlashCommand } from 'necord';
 import { CommandInteraction, MessageFlags } from 'discord.js';
-import pkg from '../../package.json';
+import pkg from '../../../package.json';
 
 @Injectable()
 export class PingCommand {
