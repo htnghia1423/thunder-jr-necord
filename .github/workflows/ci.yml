@@ -2,12 +2,13 @@ name: CI
 
 on:
   push:
-    branches: [main, dev, 'feature/*']
+    branches: [main, dev]
   pull_request:
     branches: [main, dev]
 
 jobs:
   build:
+    name: Build and Test
     runs-on: ubuntu-latest
 
     steps:
@@ -16,7 +17,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
 
@@ -46,11 +47,14 @@ jobs:
             }
           done
 
-      - name: Run ESLint
-        run: bun eslint . --ext .ts
+      - name: Lint
+        run: bun run lint
 
-      - name: Check formatting with Prettier
-        run: bun prettier --check "**/*.{ts,js,json,md,yml}"
+      - name: Test with coverage
+        run: bun run test:cov
 
-      - name: Build
-        run: bun run build
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
