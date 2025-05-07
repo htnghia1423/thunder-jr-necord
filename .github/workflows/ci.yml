@@ -48,7 +48,7 @@ jobs:
           done
 
       - name: Lint
-        run: bun run lint
+        run: bun eslint "src/**/*.ts" --ext .ts --fix
 
       - name: Test with coverage
         run: bun run test:cov

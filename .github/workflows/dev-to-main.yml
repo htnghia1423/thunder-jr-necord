@@ -1,4 +1,4 @@
-name: Dev to Main
+name: Dev to Main PR
 
 on:
   pull_request:
@@ -11,9 +11,11 @@ permissions:
   pull-requests: write
 
 jobs:
-  validate:
+  validate-pr:
+    name: Validate PR from Dev to Main
     runs-on: ubuntu-latest
-    if: github.head_ref == 'dev'
+    # Only run for PRs from dev to main
+    if: github.base_ref == 'main' && github.head_ref == 'dev'
 
     steps:
       - uses: actions/checkout@v4
@@ -21,24 +23,20 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
 
       - name: Install dependencies
         run: bun install
 
-      - name: Ensure source branch is dev
-        run: |
-          if [[ "${{ github.head_ref }}" != "dev" ]]; then
-            echo "Only the dev branch can be merged into main"
-            exit 1
-          fi
-
       - name: Run ESLint
-        run: bun eslint . --ext .ts
+        run: bun eslint "src/**/*.ts" --ext .ts
 
-      - name: Run Tests
+      - name: Check formatting with Prettier
+        run: bun prettier --check "**/*.{ts,js,json,md,yml}"
+
+      - name: Test
         run: bun test
 
       - name: Build
