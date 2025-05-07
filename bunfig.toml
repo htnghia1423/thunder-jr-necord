@@ -1,0 +1,12 @@
+[test]
+preload = "./setup.ts"
+
+[build]
+minify = true
+
+[install]
+peer = true
+
+# Configure path alias
+[resolve]
+paths = { "@/*" = "./src/*" } 
