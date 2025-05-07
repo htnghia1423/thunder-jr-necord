@@ -1,8 +1,8 @@
 # Thunder Jr Necord Bot
 
-[![CI](https://github.com/yourusername/thunder-jr-necord/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/thunder-jr-necord/actions/workflows/ci.yml)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=thunder-jr-necord&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=thunder-jr-necord)
-[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=thunder-jr-necord&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=thunder-jr-necord)
+[![CI](https://github.com/htnghia1423/thunder-jr-necord/actions/workflows/ci.yml/badge.svg)](https://github.com/htnghia1423/thunder-jr-necord/actions/workflows/ci.yml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=htnghia1423_thunder-jr-necord&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=htnghia1423_thunder-jr-necord)
+[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=htnghia1423_thunder-jr-necord&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=htnghia1423_thunder-jr-necord)
 [![Discord](https://img.shields.io/badge/Discord-7289DA?style=flat&logo=discord&logoColor=white)](https://discord.js.org/)
 [![Bun](https://img.shields.io/badge/Bun-1.2.11-black?logo=bun)](https://bun.sh/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0.0-blue?logo=typescript)](https://www.typescriptlang.org/)
@@ -52,7 +52,7 @@ All branches must follow these naming patterns:
 
 2. **Merging to Dev Branch**
 
-   - Only `feature/*`, `test/*` and `fix/*` branches can be merged into `dev`
+   - Only `feature/*`, `test/*`, `fix/*` and `main` branches can be merged into `dev`
    - Create a Pull Request from your branch to `dev`
    - GitHub Actions will check branch name, code quality, and merge flow
    - After successful checks, merge into the `dev` branch
@@ -70,6 +70,12 @@ All branches must follow these naming patterns:
    git tag -a v1.0.0 -m "Version 1.0.0"
    git push origin v1.0.0
    ```
+
+4. **Backporting to Dev**
+
+   - Changes in `main` can be merged back to `dev` if needed
+   - This is useful for synchronizing hotfixes from production back to development
+   - Create a Pull Request from `main` to `dev`
 
 ### Commit Conventions
 
