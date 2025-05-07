@@ -56,8 +56,18 @@ jobs:
           DISCORD_TOKEN: test-token
         run: bun run test:cov
 
-      - name: List coverage files
-        run: ls -la coverage/
+      - name: Debug - Show workspace structure
+        run: |
+          pwd
+          find . -type f -name "lcov.info" -o -name "*.xml"
+
+      - name: Debug - Show coverage content
+        run: |
+          echo "LCOV file content:"
+          cat coverage/lcov.info
+          echo "Current directory: $(pwd)"
+          echo "Coverage directory content:"
+          ls -la coverage/
 
       - name: Upload coverage reports as artifact
         uses: actions/upload-artifact@v4
@@ -88,5 +98,7 @@ jobs:
         with:
           # Specify additional options to ensure correct configuration
           args: >
+            -Dsonar.projectKey=htnghia1423_thunder-jr-necord
+            -Dsonar.organization=htnghia1423
             -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
             -Dsonar.coverage.exclusions=**/*.spec.ts,**/*.module.ts

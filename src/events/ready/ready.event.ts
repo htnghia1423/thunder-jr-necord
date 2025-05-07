@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Context, On, Once } from 'necord';
-import { Client, type ClientEvents } from 'discord.js';
+import { Context, Once } from 'necord';
+import { Client } from 'discord.js';
 import pkg from '../../../package.json';
 
 @Injectable()
