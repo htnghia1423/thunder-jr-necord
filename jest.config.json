@@ -12,6 +12,7 @@
   },
   "collectCoverageFrom": ["**/*.(t|j)s", "!**/node_modules/**", "!**/dist/**", "!**/*.module.ts"],
   "coverageDirectory": "../coverage",
+  "coverageReporters": ["text", "lcov", "clover"],
   "testEnvironment": "node",
   "moduleNameMapper": {
     "^@/(.*)$": "<rootDir>/$1"

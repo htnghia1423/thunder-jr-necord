@@ -56,8 +56,37 @@ jobs:
           DISCORD_TOKEN: test-token
         run: bun run test:cov
 
+      - name: List coverage files
+        run: ls -la coverage/
+
+      - name: Upload coverage reports as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 1
+
+      # Make sure the coverage report is accessible in the workspace
+      - name: Verify lcov.info exists
+        run: |
+          echo "Checking if coverage/lcov.info exists"
+          if [ -f "coverage/lcov.info" ]; then
+            echo "lcov.info exists"
+            cat coverage/lcov.info | head -n 10
+          else
+            echo "lcov.info does not exist!"
+            ls -la coverage/
+            exit 1
+          fi
+
+      # Use the official action with correct options for code coverage analysis
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          # Specify additional options to ensure correct configuration
+          args: >
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.coverage.exclusions=**/*.spec.ts,**/*.module.ts
