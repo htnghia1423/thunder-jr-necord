@@ -1,0 +1,34 @@
+name: Branch Protection
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+jobs:
+  check-branch-flow:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check branch flow
+        run: |
+          BASE_BRANCH="${{ github.base_ref }}"
+          HEAD_BRANCH="${{ github.head_ref }}"
+
+          echo "Pull request: $HEAD_BRANCH -> $BASE_BRANCH"
+
+          # Check merge flow:
+          # feature/* -> dev, test/* -> dev, fix/* -> dev: Allowed
+          # dev -> main: Allowed
+          # feature/* -> main, test/* -> main, fix/* -> main: NOT allowed
+
+          if [[ "$BASE_BRANCH" == "main" && "$HEAD_BRANCH" != "dev" ]]; then
+            echo "ERROR: Only 'dev' branch can be merged into 'main'! ❌"
+            echo "Please create a pull request to 'dev' branch first."
+            exit 1
+          fi
+
+          if [[ "$BASE_BRANCH" == "dev" && ! "$HEAD_BRANCH" =~ ^(feature|test|fix)/ ]]; then
+            echo "ERROR: Only 'feature/*', 'test/*', or 'fix/*' branches can be merged into 'dev'! ❌"
+            exit 1
+          fi
+
+          echo "Branch flow is valid! ✅"
