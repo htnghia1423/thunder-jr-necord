@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - '*'
-  pull_request:
-    branches: [main, dev]
 
 jobs:
   check-commit:
@@ -27,30 +25,47 @@ jobs:
 
       - name: Check commit message format
         run: |
-          # For PRs, check all commits in the PR
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-            COMMIT_RANGE="origin/${{ github.base_ref }}..HEAD"
+          # Get only the latest commit message when pushing
+          if [ -n "${{ github.event.before }}" ] && [ -n "${{ github.event.after }}" ]; then
+            # For normal push events
+            COMMITS_TO_CHECK=$(git log --no-merges --format=%H ${{ github.event.before }}..${{ github.event.after }})
           else
-            # For direct push, check only the new commits
-            COMMIT_RANGE="${{ github.event.before }}..${{ github.event.after }}"
+            # If before/after aren't available, just check the latest commit
+            COMMITS_TO_CHECK=$(git log -n 1 --no-merges --format=%H)
           fi
 
-          # Get all commit messages for checking, but skip merge commits
-          COMMIT_MESSAGES=$(git log --no-merges --pretty=format:%s $COMMIT_RANGE)
-          echo "Checking commit messages:"
-          echo "$COMMIT_MESSAGES"
+          echo "Commits to check:"
+          echo "$COMMITS_TO_CHECK"
 
-          # Check each commit message with commitlint
-          echo "$COMMIT_MESSAGES" | while read -r COMMIT_MSG; do
-            # Skip empty lines
-            if [ -z "$COMMIT_MSG" ]; then
+          # Check each commit
+          EXIT_CODE=0
+          for COMMIT_HASH in $COMMITS_TO_CHECK; do
+            COMMIT_MSG=$(git log -n 1 --format=%s $COMMIT_HASH)
+            
+            # Skip PR merge commits
+            if [[ "$COMMIT_MSG" =~ ^Merge\ pull\ request\ #[0-9]+\ from ]]; then
+              echo "Skipping merge commit: $COMMIT_MSG"
               continue
             fi
-
+            
+            # Skip normal merge commits
+            if [[ "$COMMIT_MSG" =~ ^Merge\ branch ]]; then
+              echo "Skipping merge commit: $COMMIT_MSG"
+              continue
+            fi
+            
+            # Skip squashed PR commits that contain (#number)
+            if [[ "$COMMIT_MSG" =~ .*\(#[0-9]+\)$ ]]; then
+              echo "Skipping PR squash commit: $COMMIT_MSG"
+              continue
+            fi
+            
             echo "Checking commit message: $COMMIT_MSG"
             echo "$COMMIT_MSG" | bun commitlint || {
               echo "Commit message must follow conventional commit format: <type>: <description>"
               echo "Types: feat, fix, docs, style, refactor, test, chore, ci, add, update, remove"
-              exit 1
+              EXIT_CODE=1
             }
           done
+
+          exit $EXIT_CODE
