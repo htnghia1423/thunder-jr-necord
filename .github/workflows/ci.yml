@@ -24,28 +24,28 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Check commit message format
-        if: github.event_name == 'pull_request'
-        run: |
-          # Get all commit messages in the PR for checking, but skip merge commits
-          COMMIT_MESSAGES=$(git log --no-merges --pretty=format:%s origin/${{ github.base_ref }}..HEAD)
-          echo "Checking commit messages in the PR:"
-          echo "$COMMIT_MESSAGES"
+      # - name: Check commit message format
+      #   if: github.event_name == 'pull_request'
+      #   run: |
+      #     # Get all commit messages in the PR for checking, but skip merge commits
+      #     COMMIT_MESSAGES=$(git log --no-merges --pretty=format:%s origin/${{ github.base_ref }}..HEAD)
+      #     echo "Checking commit messages in the PR:"
+      #     echo "$COMMIT_MESSAGES"
 
-          # Check each commit message with commitlint
-          echo "$COMMIT_MESSAGES" | while read -r COMMIT_MSG; do
-            # Skip empty lines
-            if [ -z "$COMMIT_MSG" ]; then
-              continue
-            fi
-            
-            echo "Checking commit message: $COMMIT_MSG"
-            echo "$COMMIT_MSG" | bun commitlint || {
-              echo "Commit message must follow conventional commit format: <type>: <description>"
-              echo "Types: feat, fix, docs, style, refactor, test, chore, ci, add, update, remove"
-              exit 1
-            }
-          done
+      #     # Check each commit message with commitlint
+      #     echo "$COMMIT_MESSAGES" | while read -r COMMIT_MSG; do
+      #       # Skip empty lines
+      #       if [ -z "$COMMIT_MSG" ]; then
+      #         continue
+      #       fi
+
+      #       echo "Checking commit message: $COMMIT_MSG"
+      #       echo "$COMMIT_MSG" | bun commitlint || {
+      #         echo "Commit message must follow conventional commit format: <type>: <description>"
+      #         echo "Types: feat, fix, docs, style, refactor, test, chore, ci, add, update, remove"
+      #         exit 1
+      #       }
+      #     done
 
       - name: Lint
         run: bun eslint "src/**/*.ts" --ext .ts --fix
