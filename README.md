@@ -17,8 +17,8 @@ This project uses a structured Git flow:
 
 ### Main Branches
 
-- **main**: The main branch containing stable code ready for deployment
-- **dev**: Development branch where completed features are integrated
+- **main**: The main branch containing stable code ready for deployment.
+- **dev**: Development branch where completed features are integrated.
 
 ### Branch Naming Conventions
 
