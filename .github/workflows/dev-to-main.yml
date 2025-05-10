@@ -37,6 +37,9 @@ jobs:
         run: bun prettier --check "**/*.{ts,js,json,md,yml}"
 
       - name: Test
+        env:
+          NODE_ENV: test
+          DISCORD_TOKEN: test-token
         run: bun test
 
       - name: Build
