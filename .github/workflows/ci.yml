@@ -66,6 +66,13 @@ jobs:
             exit 1
           fi
 
+      # Copy lcov.info to predictable location to ensure SonarCloud finds it
+      - name: Prepare coverage report for SonarCloud
+        run: |
+          mkdir -p .scannerwork
+          cp coverage/lcov.info .scannerwork/
+          echo "Coverage report copied to .scannerwork directory"
+
       # Use the official action with correct options for code coverage analysis
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
@@ -77,5 +84,7 @@ jobs:
           args: >
             -Dsonar.projectKey=htnghia1423_thunder-jr-necord
             -Dsonar.organization=htnghia1423
-            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info,.scannerwork/lcov.info
             -Dsonar.coverage.exclusions=**/*.spec.ts,**/*.module.ts
+            -Dsonar.sources=src
+            -Dsonar.verbose=true
