@@ -17,8 +17,8 @@ This project uses a structured Git flow:
 
 ### Main Branches
 
-- **main**: The main branch containing stable code ready for deployment
-- **dev**: Development branch where completed features are integrated
+- **main**: The main branch containing stable code ready for deployment.
+- **dev**: Development branch where completed features are integrated.
 
 ### Branch Naming Conventions
 
@@ -73,9 +73,9 @@ All branches must follow these naming patterns:
 
 4. **Backporting to Dev**
 
-   - Changes in `main` can be merged back to `dev` if needed
-   - This is useful for synchronizing hotfixes from production back to development
-   - Create a Pull Request from `main` to `dev`
+   - Changes in `main` can be merged back to `dev` if needed.
+   - This is useful for synchronizing hotfixes from production back to development.
+   - Create a Pull Request from `main` to `dev`.
 
 ### Commit Conventions
 

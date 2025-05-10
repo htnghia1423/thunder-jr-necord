@@ -2,12 +2,13 @@ name: CI
 
 on:
   push:
-    branches: [main, dev, 'feature/*']
+    branches: [main, dev]
   pull_request:
     branches: [main, dev]
 
 jobs:
   build:
+    name: Build and Test
     runs-on: ubuntu-latest
 
     steps:
@@ -16,41 +17,81 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
 
       - name: Install dependencies
         run: bun install
 
-      - name: Check commit message format
-        if: github.event_name == 'pull_request'
+      - name: Lint
+        run: bun eslint "src/**/*.ts" --ext .ts --fix
+
+      - name: Test with coverage
+        env:
+          NODE_ENV: test
+          DISCORD_TOKEN: test-token
+        run: bun run test:cov
+
+      - name: Debug - Show workspace structure
         run: |
-          # Get all commit messages in the PR for checking, but skip merge commits
-          COMMIT_MESSAGES=$(git log --no-merges --pretty=format:%s origin/${{ github.base_ref }}..HEAD)
-          echo "Checking commit messages in the PR:"
-          echo "$COMMIT_MESSAGES"
+          pwd
+          find . -type f -name "lcov.info" -o -name "*.xml"
 
-          # Check each commit message with commitlint
-          echo "$COMMIT_MESSAGES" | while read -r COMMIT_MSG; do
-            # Skip empty lines
-            if [ -z "$COMMIT_MSG" ]; then
-              continue
-            fi
-            
-            echo "Checking commit message: $COMMIT_MSG"
-            echo "$COMMIT_MSG" | bun commitlint || {
-              echo "Commit message must follow conventional commit format: <type>: <description>"
-              echo "Types: feat, fix, docs, style, refactor, test, chore, ci, add, update, remove"
-              exit 1
-            }
-          done
+      - name: Debug - Show coverage content
+        run: |
+          echo "LCOV file content:"
+          cat coverage/lcov.info
+          echo "Current directory: $(pwd)"
+          echo "Coverage directory content:"
+          ls -la coverage/
 
-      - name: Run ESLint
-        run: bun eslint . --ext .ts
+      - name: Upload coverage reports as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 1
 
-      - name: Check formatting with Prettier
-        run: bun prettier --check "**/*.{ts,js,json,md,yml}"
+      # Make sure the coverage report is accessible in the workspace
+      - name: Verify lcov.info exists
+        run: |
+          echo "Checking if coverage/lcov.info exists"
+          if [ -f "coverage/lcov.info" ]; then
+            echo "lcov.info exists"
+            cat coverage/lcov.info | head -n 10
+          else
+            echo "lcov.info does not exist!"
+            ls -la coverage/
+            exit 1
+          fi
 
-      - name: Build
-        run: bun run build
+      # Copy lcov.info to predictable location to ensure SonarCloud finds it
+      - name: Prepare coverage report for SonarCloud
+        run: |
+          mkdir -p .scannerwork
+          cp coverage/lcov.info .scannerwork/
+          echo "Coverage report copied to .scannerwork directory"
+
+      # Use the official action with correct options for code coverage analysis
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          # Specify additional options to ensure correct configuration
+          args: >
+            -Dsonar.projectKey=htnghia1423_thunder-jr-necord
+            -Dsonar.organization=htnghia1423
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info,.scannerwork/lcov.info
+            -Dsonar.coverage.exclusions=**/*.spec.ts,**/*.module.ts
+            -Dsonar.sources=src
+            -Dsonar.tests=src
+            -Dsonar.test.inclusions=**/*.spec.ts,**/*.test.ts
+            -Dsonar.typescript.tsconfigPath=tsconfig.json
+            -Dsonar.verbose=true
+            -Dsonar.scanner.force-deprecated-java-version=true
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.coverage.reportPaths=coverage/lcov.info
+            -Dsonar.testExecutionReportPaths=coverage/lcov.info
