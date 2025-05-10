@@ -87,4 +87,8 @@ jobs:
             -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info,.scannerwork/lcov.info
             -Dsonar.coverage.exclusions=**/*.spec.ts,**/*.module.ts
             -Dsonar.sources=src
+            -Dsonar.tests=src
+            -Dsonar.test.inclusions=**/*.spec.ts,**/*.test.ts
+            -Dsonar.typescript.tsconfigPath=tsconfig.json
             -Dsonar.verbose=true
+            -Dsonar.scanner.force-deprecated-java-version=true
