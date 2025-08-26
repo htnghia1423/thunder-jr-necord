@@ -1,0 +1,39 @@
+name: Build source code
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+  pull_request:
+
+jobs:
+  build:
+    name: Build NestJS source code
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: 💚 Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.19.2
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: 🔄 Install dependencies
+        run: |
+          pnpm install --frozen-lockfile
+
+      - name: 🏗️ Run Build
+        run: |
+          pnpm build
