@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { MessageFlags } from 'discord.js';
 import { Context, SlashCommand } from 'necord';
 import type { SlashCommandContext } from 'necord';
 
@@ -14,7 +15,7 @@ export class PingCommand {
 
 		return interaction.reply({
 			content: `🏓 Pong! My latency is ${latency}ms.`,
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 	}
 }
