@@ -9,7 +9,7 @@ export class StopCommand {
 
 	@SlashCommand({
 		name: 'stop',
-		description: 'Dừng phát nhạc và xóa hàng đợi',
+		description: 'Stop music playback and clear queue',
 	})
 	public async execute(@Context() context: SlashCommandContext) {
 		const [interaction] = context;

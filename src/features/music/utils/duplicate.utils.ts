@@ -65,12 +65,12 @@ export class DuplicateUtils {
 		matchType: 'url' | 'name' | 'both',
 	): string {
 		const matchTypeText = {
-			url: '(cùng URL)',
-			name: '(cùng tên + nghệ sĩ)',
-			both: '(hoàn toàn trùng khớp)',
+			url: '(same URL)',
+			name: '(same name + artist)',
+			both: '(exact match)',
 		};
 
-		return `⚠️ **Bài này đã có trong queue**\n📍 Vị trí hiện tại: #${position} ${matchTypeText[matchType]}`;
+		return `⚠️ **This song is already in queue**\n📍 Current position: #${position} ${matchTypeText[matchType]}`;
 	}
 
 	/**
@@ -132,20 +132,20 @@ export class DuplicateUtils {
 	): string {
 		const percentage = Math.round((duplicateCount / totalSongs) * 100);
 
-		let message = `📋 **Phát hiện playlist có ${duplicateCount} bài trùng trong ${totalSongs} bài** (${percentage}%)\n\n`;
+		let message = `📋 **Playlist contains ${duplicateCount} duplicates out of ${totalSongs} songs** (${percentage}%)\n\n`;
 
 		// Show first 3 duplicates as examples
 		const samplesToShow = Math.min(3, duplicates.length);
 		if (samplesToShow > 0) {
-			message += `**Ví dụ bài trùng:**\n`;
+			message += `**Duplicate examples:**\n`;
 			for (let i = 0; i < samplesToShow; i++) {
 				const dup = duplicates[i];
 				const songName = dup.song.name || 'Unknown';
-				message += `• ${songName} (đã có ở #${dup.existingPosition})\n`;
+				message += `• ${songName} (already at #${dup.existingPosition})\n`;
 			}
 
 			if (duplicates.length > 3) {
-				message += `• ... và ${duplicates.length - 3} bài khác\n`;
+				message += `• ... and ${duplicates.length - 3} more\n`;
 			}
 		}
 

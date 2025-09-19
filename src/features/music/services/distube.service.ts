@@ -82,7 +82,7 @@ export class DisTubeService implements OnModuleInit {
 			this.logger.log(`Queue finished in guild ${queue.id}`);
 			const channel = queue.textChannel;
 			if (channel) {
-				channel.send('🔚 **Hàng đợi đã kết thúc!**').catch((error: Error) => {
+				channel.send('🔚 **Queue has ended!**').catch((error: Error) => {
 					this.logger.error('Failed to send finish message', error);
 				});
 			}
@@ -93,7 +93,7 @@ export class DisTubeService implements OnModuleInit {
 			this.logger.error('DisTube error:', error);
 			if (textChannel) {
 				textChannel
-					.send(`❌ **Lỗi:** ${error.message}`)
+					.send(`❌ **Error:** ${error.message}`)
 					.catch((sendError: Error) => {
 						this.logger.error('Failed to send error message', sendError);
 					});

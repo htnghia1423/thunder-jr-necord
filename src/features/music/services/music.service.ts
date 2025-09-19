@@ -334,11 +334,11 @@ export class MusicService {
 					const songName = DiscordUtils.formatSongName(
 						skippedSong?.name || 'Unknown',
 					);
-					const stopMessage = `⏭️ **Đã bỏ qua:** ${songName}\n⏹️ **Hàng đợi đã kết thúc**`;
+					const skipMessage = `⏭️ **Skipped:** ${songName}\n⏹️ **Queue has ended**`;
 
 					return {
 						success: true,
-						message: stopMessage,
+						message: skipMessage,
 						data: {
 							skippedSong,
 							nextSong: null,
@@ -354,7 +354,7 @@ export class MusicService {
 				const songName = DiscordUtils.formatSongName(
 					skippedSong?.name || 'Unknown',
 				);
-				const skipMessage = `⏭️ **Đã bỏ qua:** ${songName}`;
+				const skipMessage = `⏭️ **Skipped:** ${songName}`;
 
 				return {
 					success: true,
@@ -459,11 +459,11 @@ export class MusicService {
 				const currentSong = songs[0];
 				const queueList = songs.slice(1, 10); // Show first 9 upcoming songs
 
-				let queueMessage = `🎵 **Đang phát:** ${DiscordUtils.formatSongName(currentSong.name || 'Unknown')}\n`;
-				queueMessage += `⏱️ **Thời lượng:** ${DiscordUtils.formatDuration(currentSong.formattedDuration || '00:00')}\n\n`;
+				let queueMessage = `🎵 **Now Playing:** ${DiscordUtils.formatSongName(currentSong.name || 'Unknown')}\n`;
+				queueMessage += `⏱️ **Duration:** ${DiscordUtils.formatDuration(currentSong.formattedDuration || '00:00')}\n\n`;
 
 				if (queueList.length > 0) {
-					queueMessage += `📋 **Hàng đợi (${songs.length - 1} bài):**\n`;
+					queueMessage += `📋 **Queue (${songs.length - 1} songs):**\n`;
 					queueList.forEach((song, index: number) => {
 						const safeSongName = DiscordUtils.formatSongName(
 							song.name || 'Unknown',
@@ -475,7 +475,7 @@ export class MusicService {
 					});
 
 					if (songs.length > 10) {
-						queueMessage += `... và ${songs.length - 10} bài khác\n`;
+						queueMessage += `... and ${songs.length - 10} more songs\n`;
 					}
 				}
 
@@ -534,10 +534,10 @@ export class MusicService {
 				);
 
 				const nowPlayingMessage =
-					`🎵 **Đang phát:**\n${DiscordUtils.formatSongName(currentSong.name || 'Unknown')}\n\n` +
-					`⏱️ **Tiến trình:** ${DiscordUtils.formatDuration(progress || '00:00')} / ${DiscordUtils.formatDuration(duration || '00:00')}\n` +
+					`🎵 **Now Playing:**\n${DiscordUtils.formatSongName(currentSong.name || 'Unknown')}\n\n` +
+					`⏱️ **Progress:** ${DiscordUtils.formatDuration(progress || '00:00')} / ${DiscordUtils.formatDuration(duration || '00:00')}\n` +
 					`${progressBar}\n\n` +
-					`🎤 **Yêu cầu bởi:** ${DiscordUtils.formatUser(currentSong.user)}\n` +
+					`🎤 **Requested by:** ${DiscordUtils.formatUser(currentSong.user)}\n` +
 					`🔗 **Link:** ${currentSong.url || 'N/A'}`;
 
 				resolve({
@@ -606,7 +606,7 @@ export class MusicService {
 					distube.setVolume(interaction.guildId!, volume);
 					resolve({
 						success: true,
-						message: `🔊 Đã đặt âm lượng thành ${volume}%`,
+						message: `🔊 Volume set to ${volume}%`,
 					});
 				} catch (volumeError) {
 					this.logger.error('Error setting volume', volumeError);
@@ -648,7 +648,7 @@ export class MusicService {
 				if (!queue || !queue.songs.length) {
 					resolve({
 						success: false,
-						message: 'Không có bài hát nào trong hàng đợi.',
+						message: 'No songs in queue.',
 					});
 					return;
 				}
@@ -663,7 +663,7 @@ export class MusicService {
 					if (removeIndex < 0 || removeIndex >= queue.songs.length) {
 						resolve({
 							success: false,
-							message: `Vị trí không hợp lệ. Queue có ${queue.songs.length} bài hát (từ 1-${queue.songs.length}).`,
+							message: `Invalid position. Queue has ${queue.songs.length} songs (from 1-${queue.songs.length}).`,
 						});
 						return;
 					}
@@ -688,7 +688,7 @@ export class MusicService {
 					if (!songToRemove) {
 						resolve({
 							success: false,
-							message: `Không tìm thấy bài hát với tên: "${options.songName}".`,
+							message: `No song found with name: "${options.songName}".`,
 						});
 						return;
 					}
@@ -699,7 +699,7 @@ export class MusicService {
 					resolve({
 						success: false,
 						message:
-							'Không thể xóa bài đang phát. Sử dụng `/skip` để chuyển bài.',
+							'Cannot remove currently playing song. Use `/skip` to change song.',
 					});
 					return;
 				}
@@ -709,7 +709,7 @@ export class MusicService {
 
 				resolve({
 					success: true,
-					message: 'Đã xóa bài hát khỏi hàng đợi.',
+					message: 'Song removed from queue.',
 					data: {
 						// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
 						songName: (songToRemove?.name as string) || 'Unknown',
@@ -769,7 +769,7 @@ export class MusicService {
 
 				resolve({
 					success: true,
-					message: `${emoji} **Chế độ lặp:** ${modeText}`,
+					message: `${emoji} **Loop mode:** ${modeText}`,
 				});
 			} catch (error) {
 				this.logger.error('Error setting loop mode', error);
@@ -803,7 +803,7 @@ export class MusicService {
 				if (queue.songs.length < 2) {
 					resolve({
 						success: false,
-						message: '⚠️ **Cần ít nhất 2 bài hát để trộn**',
+						message: '⚠️ **Need at least 2 songs to shuffle**',
 					});
 					return;
 				}
@@ -813,7 +813,7 @@ export class MusicService {
 
 				resolve({
 					success: true,
-					message: `🔀 **Đã trộn ngẫu nhiên ${queue.songs.length - 1} bài hát trong queue**`,
+					message: `🔀 **Shuffled ${queue.songs.length - 1} songs in queue**`,
 				});
 			} catch (error) {
 				this.logger.error('Error shuffling queue', error);

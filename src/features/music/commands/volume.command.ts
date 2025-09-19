@@ -10,7 +10,7 @@ export class VolumeCommand {
 
 	@SlashCommand({
 		name: 'volume',
-		description: 'Điều chỉnh âm lượng phát nhạc (1-100)',
+		description: 'Adjust music playback volume (1-100)',
 	})
 	public async execute(
 		@Context() context: SlashCommandContext,

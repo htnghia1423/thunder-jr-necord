@@ -11,7 +11,7 @@ export class PlayCommand {
 
 	@SlashCommand({
 		name: 'play',
-		description: 'Phát nhạc từ YouTube URL hoặc tìm kiếm theo từ khóa',
+		description: 'Play music from YouTube URL or search by keywords',
 	})
 	public async execute(
 		@Context() context: SlashCommandContext,
@@ -35,13 +35,13 @@ export class PlayCommand {
 			const duration = result.data?.duration
 				? DiscordUtils.formatDuration(result.data.duration)
 				: '';
-			const durationText = duration ? `⏱️ **Thời lượng:** ${duration}\n` : '';
+			const durationText = duration ? `⏱️ **Duration:** ${duration}\n` : '';
 
 			// Check if this is a custom message from playlist duplicate handling
 			const isCustomMessage =
-				result.message.includes('**Đã thêm playlist**') ||
-				result.message.includes('**Đã bỏ qua**') ||
-				result.message.includes('**Đã thay thế**');
+				result.message.includes('**Added playlist**') ||
+				result.message.includes('**Skipped**') ||
+				result.message.includes('**Replaced**');
 
 			if (isCustomMessage) {
 				// Use the custom message from playlist duplicate handling
@@ -58,12 +58,12 @@ export class PlayCommand {
 				if (result.data?.isNowPlaying) {
 					// Playlist started playing immediately
 					await interaction.editReply({
-						content: `📋 **Đang phát playlist:** ${songsCount} bài hát\n🎵 **Bài đầu tiên:** ${songName}\n${durationText}👤 **Yêu cầu bởi:** <@${interaction.user.id}>`,
+						content: `📋 **Now playing playlist:** ${songsCount} songs\n🎵 **First song:** ${songName}\n${durationText}👤 **Requested by:** <@${interaction.user.id}>`,
 					});
 				} else {
 					// Playlist added to queue
 					await interaction.editReply({
-						content: `📋 **Đã thêm playlist vào hàng đợi:** ${songsCount} bài hát\n🎵 **Bài đầu tiên:** ${songName}\n${durationText}👤 **Yêu cầu bởi:** <@${interaction.user.id}>`,
+						content: `📋 **Added playlist to queue:** ${songsCount} songs\n🎵 **First song:** ${songName}\n${durationText}👤 **Requested by:** <@${interaction.user.id}>`,
 					});
 				}
 			} else {
@@ -71,17 +71,17 @@ export class PlayCommand {
 				if (result.data?.isNowPlaying) {
 					// Song is now playing (queue was empty)
 					await interaction.editReply({
-						content: `🎵 **Đang phát:** ${songName}\n${durationText}👤 **Yêu cầu bởi:** <@${interaction.user.id}>`,
+						content: `🎵 **Now Playing:** ${songName}\n${durationText}👤 **Requested by:** <@${interaction.user.id}>`,
 					});
 				} else {
 					// Song added to queue
 					const position = result.data?.queuePosition
-						? ` (vị trí #${result.data.queuePosition + 1})`
+						? ` (position #${result.data.queuePosition + 1})`
 						: '';
 					const duplicateWarning = result.data?.duplicateWarning || '';
 
 					await interaction.editReply({
-						content: `✅ **Đã thêm vào hàng đợi:** ${songName}${position}\n${durationText}👤 **Yêu cầu bởi:** <@${interaction.user.id}>${duplicateWarning}`,
+						content: `✅ **Added to queue:** ${songName}${position}\n${durationText}👤 **Requested by:** <@${interaction.user.id}>${duplicateWarning}`,
 					});
 				}
 			}

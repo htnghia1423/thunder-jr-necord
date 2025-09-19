@@ -9,7 +9,7 @@ export class QueueCommand {
 
 	@SlashCommand({
 		name: 'queue',
-		description: 'Hiển thị hàng đợi nhạc hiện tại',
+		description: 'Show current music queue',
 	})
 	public async execute(@Context() context: SlashCommandContext) {
 		const [interaction] = context;

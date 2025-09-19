@@ -11,7 +11,7 @@ export enum LoopMode {
  * Human readable loop mode names
  */
 export const LoopModeNames = {
-	[LoopMode.OFF]: 'Tắt lặp',
-	[LoopMode.SONG]: 'Lặp bài hát',
-	[LoopMode.QUEUE]: 'Lặp queue',
+	[LoopMode.OFF]: 'Loop Off',
+	[LoopMode.SONG]: 'Loop Song',
+	[LoopMode.QUEUE]: 'Loop Queue',
 };

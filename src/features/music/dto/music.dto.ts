@@ -6,7 +6,7 @@ import { NumberOption, StringOption } from 'necord';
 export class PlayDto {
 	@StringOption({
 		name: 'song',
-		description: 'YouTube URL hoặc từ khóa tìm kiếm',
+		description: 'YouTube URL or search keywords',
 		required: true,
 	})
 	song: string;
@@ -18,7 +18,7 @@ export class PlayDto {
 export class VolumeDto {
 	@NumberOption({
 		name: 'level',
-		description: 'Mức âm lượng từ 1-100',
+		description: 'Volume level from 1-100',
 		required: true,
 		min_value: 1,
 		max_value: 100,
@@ -32,7 +32,7 @@ export class VolumeDto {
 export class RemoveDto {
 	@NumberOption({
 		name: 'position',
-		description: 'Vị trí bài hát trong hàng đợi (bắt đầu từ 1)',
+		description: 'Song position in queue (starting from 1)',
 		required: true,
 		min_value: 1,
 	})
@@ -45,12 +45,12 @@ export class RemoveDto {
 export class LoopDto {
 	@StringOption({
 		name: 'mode',
-		description: 'Chế độ lặp',
+		description: 'Loop mode',
 		required: false,
 		choices: [
-			{ name: 'Tắt', value: 'off' },
-			{ name: 'Lặp bài hát', value: 'song' },
-			{ name: 'Lặp hàng đợi', value: 'queue' },
+			{ name: 'Off', value: 'off' },
+			{ name: 'Loop Song', value: 'song' },
+			{ name: 'Loop Queue', value: 'queue' },
 		],
 	})
 	mode?: 'off' | 'song' | 'queue';
@@ -62,7 +62,7 @@ export class LoopDto {
 export class SeekDto {
 	@NumberOption({
 		name: 'seconds',
-		description: 'Thời gian cần chuyển đến (giây)',
+		description: 'Time to seek to (seconds)',
 		required: true,
 		min_value: 0,
 	})

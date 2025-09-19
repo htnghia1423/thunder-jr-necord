@@ -15,17 +15,17 @@ export class PlaylistInteractionUtils {
 	static createDuplicateButtons(): ActionRowBuilder<ButtonBuilder> {
 		const addAllButton = new ButtonBuilder()
 			.setCustomId(`playlist_duplicate_${PlaylistDuplicateAction.ADD_ALL}`)
-			.setLabel('🔄 Thêm tất cả')
+			.setLabel('🔄 Add All')
 			.setStyle(ButtonStyle.Primary);
 
 		const newOnlyButton = new ButtonBuilder()
 			.setCustomId(`playlist_duplicate_${PlaylistDuplicateAction.NEW_ONLY}`)
-			.setLabel('✨ Chỉ bài mới')
+			.setLabel('✨ New Only')
 			.setStyle(ButtonStyle.Success);
 
 		const cancelButton = new ButtonBuilder()
 			.setCustomId(`playlist_duplicate_${PlaylistDuplicateAction.CANCEL}`)
-			.setLabel('❌ Hủy thêm')
+			.setLabel('❌ Cancel')
 			.setStyle(ButtonStyle.Danger);
 
 		return new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -44,7 +44,7 @@ export class PlaylistInteractionUtils {
 	): Promise<PlaylistDuplicateAction | null> {
 		try {
 			const response = await interaction.followUp({
-				content: '🤔 **Bạn muốn:**',
+				content: '🤔 **What would you like to do:**',
 				components: [this.createDuplicateButtons()],
 				ephemeral: false, // Make it visible to everyone so it can be deleted
 			});
@@ -81,7 +81,7 @@ export class PlaylistInteractionUtils {
 
 									response
 										.edit({
-											content: '✅ **Đã chọn xong!**',
+											content: '✅ **Choice made!**',
 											components: [disabledButtons],
 										})
 										.catch(() => {
@@ -125,16 +125,16 @@ export class PlaylistInteractionUtils {
 
 		switch (action) {
 			case PlaylistDuplicateAction.ADD_ALL:
-				return `📋 **Đã thêm ${playlistText}: ${totalSongs} bài hát**\n⚠️ **Bao gồm ${duplicateCount} bài trùng**`;
+				return `📋 **Added ${playlistText}: ${totalSongs} songs**\n⚠️ **Including ${duplicateCount} duplicates**`;
 
 			case PlaylistDuplicateAction.NEW_ONLY:
-				return `📋 **Đã thêm ${playlistText}: ${newSongsCount} bài mới**\n⏭️ **Đã bỏ qua ${duplicateCount} bài trùng**`;
+				return `📋 **Added ${playlistText}: ${newSongsCount} new songs**\n⏭️ **Skipped ${duplicateCount} duplicates**`;
 
 			case PlaylistDuplicateAction.CANCEL:
-				return `❌ **Đã hủy thêm playlist**\n🔄 Queue hiện tại không thay đổi`;
+				return `❌ **Cancelled adding playlist**\n🔄 Current queue unchanged`;
 
 			default:
-				return `📋 **Đã thêm ${playlistText}: ${totalSongs} bài hát**`;
+				return `📋 **Added ${playlistText}: ${totalSongs} songs**`;
 		}
 	}
 }

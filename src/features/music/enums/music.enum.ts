@@ -12,25 +12,25 @@ export enum LoopMode {
  */
 export enum MusicResponse {
 	// Success messages
-	SONG_PLAYING = '🎵 **Đang phát:** {songName}',
-	SONG_ADDED = '✅ **Đã thêm vào hàng đợi:** {songName}',
-	SONG_SKIPPED = '⏭️ **Đã bỏ qua bài hát**', // Removed placeholder, handled dynamically
-	PLAYBACK_STOPPED = '⏹️ **Đã dừng phát nhạc và xóa hàng đợi**',
-	QUEUE_CLEARED = '🗑️ **Đã xóa hàng đợi**',
-	VOLUME_CHANGED = '🔊 **Âm lượng đã được điều chỉnh:** {volume}%',
+	SONG_PLAYING = '🎵 **Now Playing:** {songName}',
+	SONG_ADDED = '✅ **Added to Queue:** {songName}',
+	SONG_SKIPPED = '⏭️ **Song Skipped**', // Removed placeholder, handled dynamically
+	PLAYBACK_STOPPED = '⏹️ **Playback stopped and queue cleared**',
+	QUEUE_CLEARED = '🗑️ **Queue cleared**',
+	VOLUME_CHANGED = '🔊 **Volume set to:** {volume}%',
 
 	// Error messages
-	NOT_IN_VOICE_CHANNEL = '❌ Bạn cần ở trong một voice channel để sử dụng lệnh này!',
-	BOT_NO_PERMISSIONS = '❌ Tôi không có quyền Connect hoặc Speak trong voice channel này!',
-	NO_QUEUE = '❌ Không có hàng đợi nào!',
-	QUEUE_EMPTY = '❌ Hàng đợi trống!',
-	SONG_NOT_FOUND = '❌ Không tìm thấy bài hát nào với từ khóa này!',
-	INVALID_POSITION = '❌ Vị trí không hợp lệ trong hàng đợi!',
-	NO_CURRENT_SONG = '❌ Không có bài hát nào đang phát!',
-	PLAY_ERROR = '❌ Có lỗi khi phát nhạc. Vui lòng thử lại!',
-	SKIP_ERROR = '❌ Có lỗi khi bỏ qua bài hát!',
-	INVALID_VOLUME = '❌ Âm lượng phải từ 0 đến 100!',
-	GENERIC_ERROR = '❌ Có lỗi xảy ra khi thực hiện lệnh. Vui lòng thử lại sau!',
+	NOT_IN_VOICE_CHANNEL = '❌ You need to be in a voice channel to use this command!',
+	BOT_NO_PERMISSIONS = "❌ I don't have Connect or Speak permissions in this voice channel!",
+	NO_QUEUE = '❌ No queue found!',
+	QUEUE_EMPTY = '❌ Queue is empty!',
+	SONG_NOT_FOUND = '❌ No song found with that search term!',
+	INVALID_POSITION = '❌ Invalid position in queue!',
+	NO_CURRENT_SONG = '❌ No song is currently playing!',
+	PLAY_ERROR = '❌ Error playing music. Please try again!',
+	SKIP_ERROR = '❌ Error skipping song!',
+	INVALID_VOLUME = '❌ Volume must be between 0 and 100!',
+	GENERIC_ERROR = '❌ An error occurred while executing the command. Please try again later!',
 }
 
 /**

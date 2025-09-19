@@ -12,14 +12,14 @@ import type { SlashCommandContext } from 'necord';
 export class RemoveDto {
 	@NumberOption({
 		name: 'position',
-		description: 'Vị trí bài hát trong queue (số thứ tự)',
+		description: 'Song position in queue (position number)',
 		required: false,
 	})
 	position?: number;
 
 	@StringOption({
 		name: 'song_name',
-		description: 'Tên bài hát cần xóa (tìm kiếm gần đúng)',
+		description: 'Song name to remove (fuzzy search)',
 		required: false,
 	})
 	songName?: string;
@@ -31,7 +31,7 @@ export class RemoveCommand {
 
 	@SlashCommand({
 		name: 'remove',
-		description: '🗑️ Xóa bài hát khỏi hàng đợi theo vị trí hoặc tên bài',
+		description: '🗑️ Remove song from queue by position or name',
 	})
 	public async execute(
 		@Context() context: SlashCommandContext,
@@ -44,7 +44,7 @@ export class RemoveCommand {
 		if (!dto.position && !dto.songName) {
 			await interaction.editReply({
 				content:
-					'❌ **Lỗi:** Vui lòng cung cấp vị trí hoặc tên bài hát để xóa.',
+					'❌ **Error:** Please provide either position or song name to remove.',
 			});
 			return;
 		}
@@ -53,10 +53,10 @@ export class RemoveCommand {
 
 		if (result.success) {
 			const { songName, position, method } = result.data || {};
-			const methodText = method === 'position' ? 'theo vị trí' : 'theo tên';
+			const methodText = method === 'position' ? 'by position' : 'by name';
 
 			await interaction.editReply({
-				content: `🗑️ **Đã xóa bài hát ${methodText}:**\n🎵 **${songName}** (vị trí #${position})\n👤 **Yêu cầu bởi:** <@${interaction.user.id}>`,
+				content: `🗑️ **Removed song ${methodText}:**\n🎵 **${songName}** (position #${position})\n👤 **Requested by:** <@${interaction.user.id}>`,
 			});
 		} else {
 			await interaction.editReply({

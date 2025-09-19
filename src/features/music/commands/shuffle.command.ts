@@ -9,7 +9,7 @@ export class ShuffleCommand {
 
 	@SlashCommand({
 		name: 'shuffle',
-		description: 'Trộn ngẫu nhiên thứ tự các bài hát trong queue',
+		description: 'Randomly shuffle the order of songs in queue',
 	})
 	public async execute(@Context() context: SlashCommandContext) {
 		const [interaction] = context;

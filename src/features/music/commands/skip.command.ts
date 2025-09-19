@@ -9,7 +9,7 @@ export class SkipCommand {
 
 	@SlashCommand({
 		name: 'skip',
-		description: 'Bỏ qua bài hát hiện tại',
+		description: 'Skip the current song',
 	})
 	public async execute(@Context() context: SlashCommandContext) {
 		const [interaction] = context;

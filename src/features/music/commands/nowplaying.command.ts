@@ -9,7 +9,7 @@ export class NowPlayingCommand {
 
 	@SlashCommand({
 		name: 'nowplaying',
-		description: 'Hiển thị thông tin bài hát đang phát',
+		description: 'Show currently playing song information',
 	})
 	public async execute(@Context() context: SlashCommandContext) {
 		const [interaction] = context;

@@ -11,7 +11,7 @@ export class LoopCommand {
 
 	@SlashCommand({
 		name: 'loop',
-		description: 'Bật/tắt chế độ lặp lại (OFF, SONG, QUEUE)',
+		description: 'Toggle loop mode (OFF, SONG, QUEUE)',
 	})
 	public async execute(
 		@Context() context: SlashCommandContext,
