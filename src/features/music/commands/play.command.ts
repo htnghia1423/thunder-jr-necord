@@ -1,9 +1,16 @@
 import { PlayDto } from '../dto/music.dto';
+import { PlayResult } from '../interfaces/music.interface';
 import { MusicService } from '../services/music.service';
 import { DiscordUtils } from '../utils/discord.utils';
 import { Injectable } from '@nestjs/common';
+import { type ChatInputCommandInteraction } from 'discord.js';
 import { Context, Options, SlashCommand } from 'necord';
 import type { SlashCommandContext } from 'necord';
+
+interface SongData {
+	songName: string;
+	durationText: string;
+}
 
 @Injectable()
 export class PlayCommand {
@@ -21,72 +28,96 @@ export class PlayCommand {
 
 		if (!interaction.isChatInputCommand()) return;
 
-		// Defer reply to prevent timeout
 		await interaction.deferReply();
-
-		// Delegate to MusicService
 		const result = await this.musicService.play(interaction, song);
 
-		if (result.success) {
-			// Check if this was a playlist or single song
-			const songName = DiscordUtils.formatSongName(
-				result.data?.songName || song,
-			);
-			const duration = result.data?.duration
-				? DiscordUtils.formatDuration(result.data.duration)
-				: '';
-			const durationText = duration ? `⏱️ **Duration:** ${duration}\n` : '';
-
-			// Check if this is a custom message from playlist duplicate handling
-			const isCustomMessage =
-				result.message.includes('**Added playlist**') ||
-				result.message.includes('**Skipped**') ||
-				result.message.includes('**Replaced**');
-
-			if (isCustomMessage) {
-				// Use the custom message from playlist duplicate handling
-				await interaction.editReply({
-					content: result.message,
-				});
-				return;
-			}
-
-			if (result.data?.isPlaylist) {
-				// Handle playlist
-				const songsCount = result.data.songsAdded || 1;
-
-				if (result.data?.isNowPlaying) {
-					// Playlist started playing immediately
-					await interaction.editReply({
-						content: `📋 **Now playing playlist:** ${songsCount} songs\n🎵 **First song:** ${songName}\n${durationText}👤 **Requested by:** <@${interaction.user.id}>`,
-					});
-				} else {
-					// Playlist added to queue
-					await interaction.editReply({
-						content: `📋 **Added playlist to queue:** ${songsCount} songs\n🎵 **First song:** ${songName}\n${durationText}👤 **Requested by:** <@${interaction.user.id}>`,
-					});
-				}
-			} else {
-				// Handle single song (existing logic)
-				if (result.data?.isNowPlaying) {
-					// Song is now playing (queue was empty)
-					await interaction.editReply({
-						content: `🎵 **Now Playing:** ${songName}\n${durationText}👤 **Requested by:** <@${interaction.user.id}>`,
-					});
-				} else {
-					// Song added to queue
-					const position = result.data?.queuePosition
-						? ` (position #${result.data.queuePosition + 1})`
-						: '';
-					const duplicateWarning = result.data?.duplicateWarning || '';
-
-					await interaction.editReply({
-						content: `✅ **Added to queue:** ${songName}${position}\n${durationText}👤 **Requested by:** <@${interaction.user.id}>${duplicateWarning}`,
-					});
-				}
-			}
-		} else {
+		if (!result.success) {
 			await interaction.editReply({ content: result.message });
+			return;
+		}
+
+		await this.handleSuccessfulPlay(interaction, result, song);
+	}
+
+	private async handleSuccessfulPlay(
+		interaction: ChatInputCommandInteraction,
+		result: PlayResult,
+		song: string,
+	): Promise<void> {
+		const songData = this.prepareSongData(result, song);
+
+		if (this.isCustomMessage(result.message)) {
+			await interaction.editReply({ content: result.message });
+			return;
+		}
+
+		if (result.data?.isPlaylist) {
+			await this.handlePlaylistResponse(interaction, result, songData);
+		} else {
+			await this.handleSingleSongResponse(interaction, result, songData);
+		}
+	}
+
+	private prepareSongData(result: PlayResult, song: string): SongData {
+		const songName = DiscordUtils.formatSongName(result.data?.songName || song);
+		const duration = result.data?.duration
+			? DiscordUtils.formatDuration(result.data.duration)
+			: '';
+		const durationText = duration ? `⏱️ **Duration:** ${duration}\n` : '';
+
+		return { songName, durationText };
+	}
+
+	private isCustomMessage(message: string): boolean {
+		return (
+			message.includes('**Added playlist**') ||
+			message.includes('**Skipped**') ||
+			message.includes('**Replaced**')
+		);
+	}
+
+	private async handlePlaylistResponse(
+		interaction: ChatInputCommandInteraction,
+		result: PlayResult,
+		songData: SongData,
+	): Promise<void> {
+		const songsCount = result.data?.songsAdded || 1;
+		const { songName, durationText } = songData;
+
+		const baseContent = `🎵 **First song:** ${songName}\n${durationText}👤 **Requested by:** <@${interaction.user.id}>`;
+
+		if (result.data?.isNowPlaying) {
+			await interaction.editReply({
+				content: `📋 **Now playing playlist:** ${songsCount} songs\n${baseContent}`,
+			});
+		} else {
+			await interaction.editReply({
+				content: `📋 **Added playlist to queue:** ${songsCount} songs\n${baseContent}`,
+			});
+		}
+	}
+
+	private async handleSingleSongResponse(
+		interaction: ChatInputCommandInteraction,
+		result: PlayResult,
+		songData: SongData,
+	): Promise<void> {
+		const { songName, durationText } = songData;
+		const userMention = `👤 **Requested by:** <@${interaction.user.id}>`;
+
+		if (result.data?.isNowPlaying) {
+			await interaction.editReply({
+				content: `🎵 **Now Playing:** ${songName}\n${durationText}${userMention}`,
+			});
+		} else {
+			const position = result.data?.queuePosition
+				? ` (position #${result.data.queuePosition + 1})`
+				: '';
+			const duplicateWarning = result.data?.duplicateWarning || '';
+
+			await interaction.editReply({
+				content: `✅ **Added to queue:** ${songName}${position}\n${durationText}${userMention}${duplicateWarning}`,
+			});
 		}
 	}
 }
