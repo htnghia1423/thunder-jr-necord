@@ -31,6 +31,15 @@ export class MusicService {
 	): Promise<PlayResult> {
 		return new Promise((resolve) => {
 			try {
+				const guildId = interaction.guildId;
+				if (!guildId) {
+					resolve({
+						success: false,
+						message: MusicResponse.GENERIC_ERROR,
+					});
+					return;
+				}
+
 				const member = interaction.guild?.members.cache.get(
 					interaction.user.id,
 				);
@@ -47,7 +56,7 @@ export class MusicService {
 				const distube = this.distubeService.getDistube();
 
 				// Check if queue exists and has songs before playing
-				const existingQueue = distube.getQueue(interaction.guildId!);
+				const existingQueue = distube.getQueue(guildId);
 				const wasQueueEmpty =
 					!existingQueue || existingQueue.songs.length === 0;
 
@@ -64,7 +73,7 @@ export class MusicService {
 					})
 					.then(async () => {
 						// After playing, check the final queue state
-						const finalQueue = distube.getQueue(interaction.guildId!);
+						const finalQueue = distube.getQueue(guildId);
 						const currentSong = finalQueue?.songs[0];
 						const totalSongs = finalQueue?.songs.length || 0;
 						const songsAdded =
@@ -160,16 +169,21 @@ export class MusicService {
 								? []
 								: finalQueue?.songs.slice(0, originalQueueLength) || [];
 
-							if (songsToCheck.length > 0) {
+							if (songsToCheck.length > 0 && currentSong) {
 								const duplicateCheck = DuplicateUtils.checkDuplicate(
-									currentSong!,
+									currentSong,
 									songsToCheck,
 								);
-								if (duplicateCheck.isDuplicate) {
+								if (
+									duplicateCheck.isDuplicate &&
+									currentSong.name &&
+									duplicateCheck.position &&
+									duplicateCheck.matchType
+								) {
 									duplicateWarning = `\n\n${DuplicateUtils.generateDuplicateWarning(
-										currentSong!.name!,
-										duplicateCheck.position!,
-										duplicateCheck.matchType!,
+										currentSong.name,
+										duplicateCheck.position,
+										duplicateCheck.matchType,
 									)}`;
 								}
 							}
@@ -225,8 +239,17 @@ export class MusicService {
 		},
 	): Promise<PlayResult> {
 		return new Promise((resolve) => {
+			const guildId = interaction.guildId;
+			if (!guildId) {
+				resolve({
+					success: false,
+					message: MusicResponse.GENERIC_ERROR,
+				});
+				return;
+			}
+
 			const distube = this.distubeService.getDistube();
-			const queue = distube.getQueue(interaction.guildId!);
+			const queue = distube.getQueue(guildId);
 
 			if (!queue) {
 				resolve({
@@ -303,6 +326,14 @@ export class MusicService {
 	 */
 	async skip(interaction: ChatInputCommandInteraction): Promise<SkipResult> {
 		try {
+			const guildId = interaction.guildId;
+			if (!guildId) {
+				return {
+					success: false,
+					message: MusicResponse.GENERIC_ERROR,
+				};
+			}
+
 			const member = interaction.guild?.members.cache.get(interaction.user.id);
 			const voiceChannel = member?.voice?.channel as VoiceBasedChannel;
 
@@ -314,7 +345,7 @@ export class MusicService {
 			}
 
 			const distube = this.distubeService.getDistube();
-			const queue = distube.getQueue(interaction.guildId!);
+			const queue = distube.getQueue(guildId);
 
 			if (!queue) {
 				return {
@@ -329,7 +360,7 @@ export class MusicService {
 
 				// If only 1 song, use stop instead of skip
 				if (songsCount <= 1) {
-					await distube.stop(interaction.guildId!);
+					await distube.stop(guildId);
 
 					const songName = DiscordUtils.formatSongName(
 						skippedSong?.name || 'Unknown',
@@ -348,7 +379,7 @@ export class MusicService {
 				}
 
 				// If multiple songs, normal skip
-				await distube.skip(interaction.guildId!);
+				await distube.skip(guildId);
 
 				// Create dynamic message with actual song name
 				const songName = DiscordUtils.formatSongName(
@@ -388,6 +419,14 @@ export class MusicService {
 		interaction: ChatInputCommandInteraction,
 	): Promise<MusicOperationResult> {
 		try {
+			const guildId = interaction.guildId;
+			if (!guildId) {
+				return {
+					success: false,
+					message: MusicResponse.GENERIC_ERROR,
+				};
+			}
+
 			const member = interaction.guild?.members.cache.get(interaction.user.id);
 			const voiceChannel = member?.voice?.channel as VoiceBasedChannel;
 
@@ -399,7 +438,7 @@ export class MusicService {
 			}
 
 			const distube = this.distubeService.getDistube();
-			const queue = distube.getQueue(interaction.guildId!);
+			const queue = distube.getQueue(guildId);
 
 			if (!queue) {
 				return {
@@ -409,7 +448,7 @@ export class MusicService {
 			}
 
 			try {
-				await distube.stop(interaction.guildId!);
+				await distube.stop(guildId);
 				return {
 					success: true,
 					message: MusicResponse.PLAYBACK_STOPPED,
@@ -436,8 +475,17 @@ export class MusicService {
 	getQueue(interaction: ChatInputCommandInteraction): Promise<QueueResult> {
 		return new Promise((resolve) => {
 			try {
+				const guildId = interaction.guildId;
+				if (!guildId) {
+					resolve({
+						success: false,
+						message: MusicResponse.GENERIC_ERROR,
+					});
+					return;
+				}
+
 				const distube = this.distubeService.getDistube();
-				const queue = distube.getQueue(interaction.guildId!);
+				const queue = distube.getQueue(guildId);
 
 				if (!queue) {
 					resolve({
@@ -506,8 +554,17 @@ export class MusicService {
 	): Promise<QueueResult> {
 		return new Promise((resolve) => {
 			try {
+				const guildId = interaction.guildId;
+				if (!guildId) {
+					resolve({
+						success: false,
+						message: MusicResponse.GENERIC_ERROR,
+					});
+					return;
+				}
+
 				const distube = this.distubeService.getDistube();
-				const queue = distube.getQueue(interaction.guildId!);
+				const queue = distube.getQueue(guildId);
 
 				if (!queue) {
 					resolve({
@@ -570,6 +627,15 @@ export class MusicService {
 	): Promise<MusicOperationResult> {
 		return new Promise((resolve) => {
 			try {
+				const guildId = interaction.guildId;
+				if (!guildId) {
+					resolve({
+						success: false,
+						message: MusicResponse.GENERIC_ERROR,
+					});
+					return;
+				}
+
 				const member = interaction.guild?.members.cache.get(
 					interaction.user.id,
 				);
@@ -584,7 +650,7 @@ export class MusicService {
 				}
 
 				const distube = this.distubeService.getDistube();
-				const queue = distube.getQueue(interaction.guildId!);
+				const queue = distube.getQueue(guildId);
 
 				if (!queue) {
 					resolve({
@@ -603,7 +669,7 @@ export class MusicService {
 				}
 
 				try {
-					distube.setVolume(interaction.guildId!, volume);
+					distube.setVolume(guildId, volume);
 					resolve({
 						success: true,
 						message: `🔊 Volume set to ${volume}%`,
@@ -642,8 +708,17 @@ export class MusicService {
 	}> {
 		return new Promise((resolve) => {
 			try {
+				const guildId = interaction.guildId;
+				if (!guildId) {
+					resolve({
+						success: false,
+						message: MusicResponse.GENERIC_ERROR,
+					});
+					return;
+				}
+
 				const distube = this.distubeService.getDistube();
-				const queue = distube.getQueue(interaction.guildId!);
+				const queue = distube.getQueue(guildId);
 
 				if (!queue || !queue.songs.length) {
 					resolve({
@@ -749,8 +824,17 @@ export class MusicService {
 	): Promise<MusicOperationResult> {
 		return new Promise((resolve) => {
 			try {
+				const guildId = interaction.guildId;
+				if (!guildId) {
+					resolve({
+						success: false,
+						message: MusicResponse.GENERIC_ERROR,
+					});
+					return;
+				}
+
 				const distube = this.distubeService.getDistube();
-				const queue = distube.getQueue(interaction.guildId!);
+				const queue = distube.getQueue(guildId);
 
 				if (!queue) {
 					resolve({
@@ -789,8 +873,17 @@ export class MusicService {
 	): Promise<MusicOperationResult> {
 		return new Promise((resolve) => {
 			try {
+				const guildId = interaction.guildId;
+				if (!guildId) {
+					resolve({
+						success: false,
+						message: MusicResponse.GENERIC_ERROR,
+					});
+					return;
+				}
+
 				const distube = this.distubeService.getDistube();
-				const queue = distube.getQueue(interaction.guildId!);
+				const queue = distube.getQueue(guildId);
 
 				if (!queue) {
 					resolve({
