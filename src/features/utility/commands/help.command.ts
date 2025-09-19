@@ -1,3 +1,4 @@
+import { UTILITY_COMMAND_METADATA } from '../constants/command-metadata';
 import {
 	HELP_CONSTANTS,
 	MUSIC_COMMANDS,
@@ -11,8 +12,8 @@ import type { SlashCommandContext } from 'necord';
 @Injectable()
 export class HelpCommand {
 	@SlashCommand({
-		name: 'help',
-		description: 'Show all available bot commands and their descriptions',
+		name: UTILITY_COMMAND_METADATA.help.name,
+		description: UTILITY_COMMAND_METADATA.help.description,
 	})
 	public async execute(@Context() context: SlashCommandContext) {
 		const [interaction] = context;

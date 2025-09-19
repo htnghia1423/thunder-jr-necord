@@ -1,3 +1,4 @@
+import { MUSIC_COMMAND_METADATA } from '../../utility/constants/command-metadata';
 import { MusicService } from '../services/music.service';
 import { Injectable } from '@nestjs/common';
 import { Context, SlashCommand } from 'necord';
@@ -8,8 +9,8 @@ export class NowPlayingCommand {
 	constructor(private readonly musicService: MusicService) {}
 
 	@SlashCommand({
-		name: 'nowplaying',
-		description: 'Show currently playing song information',
+		name: MUSIC_COMMAND_METADATA.nowplaying.name,
+		description: MUSIC_COMMAND_METADATA.nowplaying.description,
 	})
 	public async execute(@Context() context: SlashCommandContext) {
 		const [interaction] = context;

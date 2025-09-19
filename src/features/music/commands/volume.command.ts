@@ -1,3 +1,4 @@
+import { MUSIC_COMMAND_METADATA } from '../../utility/constants/command-metadata';
 import { VolumeDto } from '../dto/music.dto';
 import { MusicService } from '../services/music.service';
 import { Injectable } from '@nestjs/common';
@@ -9,8 +10,8 @@ export class VolumeCommand {
 	constructor(private readonly musicService: MusicService) {}
 
 	@SlashCommand({
-		name: 'volume',
-		description: 'Adjust music playback volume (1-100)',
+		name: MUSIC_COMMAND_METADATA.volume.name,
+		description: MUSIC_COMMAND_METADATA.volume.description,
 	})
 	public async execute(
 		@Context() context: SlashCommandContext,

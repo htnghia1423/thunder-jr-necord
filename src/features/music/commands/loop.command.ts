@@ -1,3 +1,4 @@
+import { MUSIC_COMMAND_METADATA } from '../../utility/constants/command-metadata';
 import { LoopDto } from '../dto/music.dto';
 import { LoopMode } from '../enums/loop.enum';
 import { MusicService } from '../services/music.service';
@@ -10,8 +11,8 @@ export class LoopCommand {
 	constructor(private readonly musicService: MusicService) {}
 
 	@SlashCommand({
-		name: 'loop',
-		description: 'Toggle loop mode (OFF, SONG, QUEUE)',
+		name: MUSIC_COMMAND_METADATA.loop.name,
+		description: MUSIC_COMMAND_METADATA.loop.description,
 	})
 	public async execute(
 		@Context() context: SlashCommandContext,

@@ -1,3 +1,4 @@
+import { MUSIC_COMMAND_METADATA } from '../../utility/constants/command-metadata';
 import { MusicService } from '../services/music.service';
 import { Injectable } from '@nestjs/common';
 import {
@@ -30,8 +31,8 @@ export class RemoveCommand {
 	constructor(private readonly musicService: MusicService) {}
 
 	@SlashCommand({
-		name: 'remove',
-		description: '🗑️ Remove song from queue by position or name',
+		name: MUSIC_COMMAND_METADATA.remove.name,
+		description: MUSIC_COMMAND_METADATA.remove.description,
 	})
 	public async execute(
 		@Context() context: SlashCommandContext,

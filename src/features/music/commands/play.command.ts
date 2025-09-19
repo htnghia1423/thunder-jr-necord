@@ -1,3 +1,4 @@
+import { MUSIC_COMMAND_METADATA } from '../../utility/constants/command-metadata';
 import { PlayDto } from '../dto/music.dto';
 import { PlayResult } from '../interfaces/music.interface';
 import { MusicService } from '../services/music.service';
@@ -17,8 +18,8 @@ export class PlayCommand {
 	constructor(private readonly musicService: MusicService) {}
 
 	@SlashCommand({
-		name: 'play',
-		description: 'Play music from YouTube URL or search by keywords',
+		name: MUSIC_COMMAND_METADATA.play.name,
+		description: MUSIC_COMMAND_METADATA.play.description,
 	})
 	public async execute(
 		@Context() context: SlashCommandContext,
