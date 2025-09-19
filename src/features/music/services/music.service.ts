@@ -9,6 +9,7 @@ import {
 } from '../interfaces/music.interface';
 import { DiscordUtils } from '../utils/discord.utils';
 import { DuplicateUtils } from '../utils/duplicate.utils';
+import { MusicValidationUtils } from '../utils/music-validation.utils';
 import { PlaylistInteractionUtils } from '../utils/playlist-interaction.utils';
 import { Injectable, Logger } from '@nestjs/common';
 import { ChatInputCommandInteraction, VoiceBasedChannel } from 'discord.js';
@@ -31,28 +32,18 @@ export class MusicService {
 	): Promise<PlayResult> {
 		return new Promise((resolve) => {
 			try {
-				const guildId = interaction.guildId;
-				if (!guildId) {
+				const validation =
+					MusicValidationUtils.validateBasicRequirements(interaction);
+
+				if (!validation.success) {
 					resolve({
 						success: false,
-						message: MusicResponse.GENERIC_ERROR,
+						message: validation.message!,
 					});
 					return;
 				}
 
-				const member = interaction.guild?.members.cache.get(
-					interaction.user.id,
-				);
-				const voiceChannel = member?.voice?.channel as VoiceBasedChannel;
-
-				if (!voiceChannel) {
-					resolve({
-						success: false,
-						message: MusicResponse.NOT_IN_VOICE_CHANNEL,
-					});
-					return;
-				}
-
+				const { guildId, voiceChannel } = validation.data!;
 				const distube = this.distubeService.getDistube();
 
 				// Check if queue exists and has songs before playing
@@ -326,33 +317,19 @@ export class MusicService {
 	 */
 	async skip(interaction: ChatInputCommandInteraction): Promise<SkipResult> {
 		try {
-			const guildId = interaction.guildId;
-			if (!guildId) {
+			const validation = MusicValidationUtils.validateMusicCommand(
+				interaction,
+				this.distubeService.getDistube(),
+			);
+
+			if (!validation.success) {
 				return {
 					success: false,
-					message: MusicResponse.GENERIC_ERROR,
+					message: validation.message!,
 				};
 			}
 
-			const member = interaction.guild?.members.cache.get(interaction.user.id);
-			const voiceChannel = member?.voice?.channel as VoiceBasedChannel;
-
-			if (!voiceChannel) {
-				return {
-					success: false,
-					message: MusicResponse.NOT_IN_VOICE_CHANNEL,
-				};
-			}
-
-			const distube = this.distubeService.getDistube();
-			const queue = distube.getQueue(guildId);
-
-			if (!queue) {
-				return {
-					success: false,
-					message: MusicResponse.NO_QUEUE,
-				};
-			}
+			const { guildId, queue, distube } = validation.data!;
 
 			try {
 				const skippedSong = queue.songs[0];
@@ -419,33 +396,19 @@ export class MusicService {
 		interaction: ChatInputCommandInteraction,
 	): Promise<MusicOperationResult> {
 		try {
-			const guildId = interaction.guildId;
-			if (!guildId) {
+			const validation = MusicValidationUtils.validateMusicCommand(
+				interaction,
+				this.distubeService.getDistube(),
+			);
+
+			if (!validation.success) {
 				return {
 					success: false,
-					message: MusicResponse.GENERIC_ERROR,
+					message: validation.message!,
 				};
 			}
 
-			const member = interaction.guild?.members.cache.get(interaction.user.id);
-			const voiceChannel = member?.voice?.channel as VoiceBasedChannel;
-
-			if (!voiceChannel) {
-				return {
-					success: false,
-					message: MusicResponse.NOT_IN_VOICE_CHANNEL,
-				};
-			}
-
-			const distube = this.distubeService.getDistube();
-			const queue = distube.getQueue(guildId);
-
-			if (!queue) {
-				return {
-					success: false,
-					message: MusicResponse.NO_QUEUE,
-				};
-			}
+			const { guildId, distube } = validation.data!;
 
 			try {
 				await distube.stop(guildId);
