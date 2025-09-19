@@ -1,5 +1,38 @@
 import { Song } from 'distube';
 
+/**
+ * Type representing the different ways songs can match
+ */
+type MatchType = 'url' | 'name' | 'both';
+
+/**
+ * Type representing the result of a duplicate check
+ */
+type DuplicateCheckResult = {
+	isDuplicate: boolean;
+	position?: number;
+	matchType?: MatchType;
+};
+
+/**
+ * Type representing a duplicate song entry
+ */
+type DuplicateSongEntry = {
+	song: Song;
+	existingPosition: number;
+	matchType: MatchType;
+};
+
+/**
+ * Type representing the result of playlist duplicate analysis
+ */
+type PlaylistDuplicateResult = {
+	totalSongs: number;
+	duplicates: Array<DuplicateSongEntry>;
+	newSongs: Song[];
+	duplicateCount: number;
+};
+
 export class DuplicateUtils {
 	/**
 	 * Check if a song already exists in the queue
@@ -10,11 +43,7 @@ export class DuplicateUtils {
 	static checkDuplicate(
 		newSong: Song,
 		existingQueue: Song[],
-	): {
-		isDuplicate: boolean;
-		position?: number;
-		matchType?: 'url' | 'name' | 'both';
-	} {
+	): DuplicateCheckResult {
 		if (!existingQueue?.length) {
 			return { isDuplicate: false };
 		}
@@ -62,7 +91,7 @@ export class DuplicateUtils {
 	static generateDuplicateWarning(
 		songName: string,
 		position: number,
-		matchType: 'url' | 'name' | 'both',
+		matchType: MatchType,
 	): string {
 		const matchTypeText = {
 			url: '(same URL)',
@@ -79,21 +108,8 @@ export class DuplicateUtils {
 	static checkPlaylistDuplicates(
 		newSongs: Song[],
 		existingQueue: Song[],
-	): {
-		totalSongs: number;
-		duplicates: Array<{
-			song: Song;
-			existingPosition: number;
-			matchType: 'url' | 'name' | 'both';
-		}>;
-		newSongs: Song[];
-		duplicateCount: number;
-	} {
-		const duplicates: Array<{
-			song: Song;
-			existingPosition: number;
-			matchType: 'url' | 'name' | 'both';
-		}> = [];
+	): PlaylistDuplicateResult {
+		const duplicates: Array<DuplicateSongEntry> = [];
 		const uniqueSongs: Song[] = [];
 
 		for (const newSong of newSongs) {
@@ -124,11 +140,7 @@ export class DuplicateUtils {
 	static generatePlaylistDuplicateMessage(
 		totalSongs: number,
 		duplicateCount: number,
-		duplicates: Array<{
-			song: Song;
-			existingPosition: number;
-			matchType: 'url' | 'name' | 'both';
-		}>,
+		duplicates: Array<DuplicateSongEntry>,
 	): string {
 		const percentage = Math.round((duplicateCount / totalSongs) * 100);
 
