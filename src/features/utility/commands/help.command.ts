@@ -1,3 +1,8 @@
+import {
+	HELP_CONSTANTS,
+	MUSIC_COMMANDS,
+	UTILITY_COMMANDS,
+} from '../constants/help.constants';
 import { Injectable } from '@nestjs/common';
 import { EmbedBuilder } from 'discord.js';
 import { Context, SlashCommand } from 'necord';
@@ -23,11 +28,9 @@ export class HelpCommand {
 	private generateHelpEmbeds(): EmbedBuilder[] {
 		// Main overview embed
 		const mainEmbed = new EmbedBuilder()
-			.setColor('#0099ff')
-			.setTitle('🤖 Thunder Jr Bot - Help Center')
-			.setDescription(
-				'Welcome to Thunder Jr! Here are all available commands organized by category.',
-			)
+			.setColor(HELP_CONSTANTS.COLORS.MAIN)
+			.setTitle(HELP_CONSTANTS.TITLES.MAIN)
+			.setDescription(HELP_CONSTANTS.DESCRIPTIONS.MAIN)
 			.addFields(
 				{
 					name: '🎵 Music Commands',
@@ -47,89 +50,31 @@ export class HelpCommand {
 				},
 			)
 			.setFooter({
-				text: 'Use the commands below to see detailed help for each category',
+				text: HELP_CONSTANTS.FOOTERS.MAIN,
 			});
 
 		// Music commands embed
 		const musicEmbed = new EmbedBuilder()
-			.setColor('#ff6b6b')
-			.setTitle('🎵 Music Commands')
-			.setDescription('Control your music playback with these commands:')
-			.addFields(
-				{
-					name: '🎶 `/play <song>`',
-					value:
-						'Play music from URL or search keywords\n`/play song: Imagine Dragons`',
-					inline: false,
-				},
-				{
-					name: '⏭️ `/skip`',
-					value: 'Skip the current song',
-					inline: true,
-				},
-				{
-					name: '⏹️ `/stop`',
-					value: 'Stop playback and clear queue',
-					inline: true,
-				},
-				{
-					name: '📋 `/queue`',
-					value: 'Show current music queue',
-					inline: true,
-				},
-				{
-					name: '🎵 `/nowplaying`',
-					value: 'Show current song info',
-					inline: true,
-				},
-				{
-					name: '🔊 `/volume <level>`',
-					value: 'Set volume (1-100)\n`/volume level: 50`',
-					inline: true,
-				},
-				{
-					name: '❌ `/remove <position|name>`',
-					value: 'Remove song from queue\n`/remove position: 3`',
-					inline: true,
-				},
-				{
-					name: '🔄 `/loop [mode]`',
-					value: 'Toggle loop: OFF/SONG/QUEUE\n`/loop mode: song`',
-					inline: true,
-				},
-				{
-					name: '🔀 `/shuffle`',
-					value: 'Randomly shuffle queue order',
-					inline: true,
-				},
-			)
+			.setColor(HELP_CONSTANTS.COLORS.MUSIC)
+			.setTitle(HELP_CONSTANTS.TITLES.MUSIC)
+			.setDescription(HELP_CONSTANTS.DESCRIPTIONS.MUSIC)
+			.addFields(MUSIC_COMMANDS)
 			.setFooter({
-				text: '💡 You must be in a voice channel to use music commands',
+				text: HELP_CONSTANTS.FOOTERS.MUSIC,
 			});
 
 		// Utility commands embed
 		const utilityEmbed = new EmbedBuilder()
-			.setColor('#4ecdc4')
-			.setTitle('🛠️ Utility Commands')
-			.setDescription('General bot utilities and information:')
-			.addFields(
-				{
-					name: '🏓 `/ping`',
-					value: 'Check bot latency and responsiveness',
-					inline: true,
-				},
-				{
-					name: '❓ `/help`',
-					value: 'Show this help message',
-					inline: true,
-				},
-			);
+			.setColor(HELP_CONSTANTS.COLORS.UTILITY)
+			.setTitle(HELP_CONSTANTS.TITLES.UTILITY)
+			.setDescription(HELP_CONSTANTS.DESCRIPTIONS.UTILITY)
+			.addFields(UTILITY_COMMANDS);
 
 		// Tips embed
 		const tipsEmbed = new EmbedBuilder()
-			.setColor('#95e1d3')
-			.setTitle('🔗 Important Notes & Tips')
-			.setDescription('Here are some helpful tips for using the bot:')
+			.setColor(HELP_CONSTANTS.COLORS.TIPS)
+			.setTitle(HELP_CONSTANTS.TITLES.TIPS)
+			.setDescription(HELP_CONSTANTS.DESCRIPTIONS.TIPS)
 			.addFields(
 				{
 					name: '🎯 Music Sources',
