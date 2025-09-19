@@ -63,52 +63,93 @@ export class PlaylistInteractionUtils {
 						'',
 					) as PlaylistDuplicateAction;
 
-					buttonInteraction
-						.deferUpdate()
-						.then(() => {
-							// First try to delete the interaction message
-							response
-								.delete()
-								.then(() => {
-									resolve(action);
-								})
-								.catch(() => {
-									// If delete fails, disable buttons instead
-									const disabledButtons = this.createDuplicateButtons();
-									disabledButtons.components.forEach((button) => {
-										button.setDisabled(true);
-									});
-
-									response
-										.edit({
-											content: '✅ **Choice made!**',
-											components: [disabledButtons],
-										})
-										.catch(() => {
-											// If edit also fails, just resolve
-										})
-										.finally(() => {
-											resolve(action);
-										});
-								});
-						})
-						.catch(() => {
-							// If deferUpdate fails, still resolve
-							resolve(action);
-						});
+					void this.handleButtonClick(
+						buttonInteraction,
+						response,
+						action,
+						resolve,
+					);
 				});
 
 				collector.on('end', () => {
-					// Clean up on timeout
-					response.delete().catch(() => {
-						// Ignore errors if message is already deleted
-					});
-					resolve(null);
+					this.handleCollectorEnd(response, resolve);
 				});
 			});
 		} catch {
 			return null;
 		}
+	}
+
+	/**
+	 * Handle button click interaction
+	 */
+	private static async handleButtonClick(
+		buttonInteraction: ButtonInteraction,
+		response: Awaited<ReturnType<ChatInputCommandInteraction['followUp']>>,
+		action: PlaylistDuplicateAction,
+		resolve: (value: PlaylistDuplicateAction) => void,
+	): Promise<void> {
+		try {
+			await buttonInteraction.deferUpdate();
+			await this.attemptMessageDeletion(response, action, resolve);
+		} catch {
+			// If deferUpdate fails, still resolve
+			resolve(action);
+		}
+	}
+
+	/**
+	 * Attempt to delete the message, fallback to disabling buttons
+	 */
+	private static async attemptMessageDeletion(
+		response: Awaited<ReturnType<ChatInputCommandInteraction['followUp']>>,
+		action: PlaylistDuplicateAction,
+		resolve: (value: PlaylistDuplicateAction) => void,
+	): Promise<void> {
+		try {
+			await response.delete();
+			resolve(action);
+		} catch {
+			await this.fallbackToDisabledButtons(response, action, resolve);
+		}
+	}
+
+	/**
+	 * Fallback to disable buttons if deletion fails
+	 */
+	private static async fallbackToDisabledButtons(
+		response: Awaited<ReturnType<ChatInputCommandInteraction['followUp']>>,
+		action: PlaylistDuplicateAction,
+		resolve: (value: PlaylistDuplicateAction) => void,
+	): Promise<void> {
+		const disabledButtons = this.createDuplicateButtons();
+		disabledButtons.components.forEach((button) => {
+			button.setDisabled(true);
+		});
+
+		try {
+			await response.edit({
+				content: '✅ **Choice made!**',
+				components: [disabledButtons],
+			});
+		} catch {
+			// If edit also fails, just resolve
+		} finally {
+			resolve(action);
+		}
+	}
+
+	/**
+	 * Handle collector timeout
+	 */
+	private static handleCollectorEnd(
+		response: Awaited<ReturnType<ChatInputCommandInteraction['followUp']>>,
+		resolve: (value: PlaylistDuplicateAction | null) => void,
+	): void {
+		response.delete().catch(() => {
+			// Ignore errors if message is already deleted
+		});
+		resolve(null);
 	}
 
 	/**
