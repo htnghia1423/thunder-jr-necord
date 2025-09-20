@@ -11,8 +11,12 @@ import { SkipCommand } from './commands/skip.command';
 import { StopCommand } from './commands/stop.command';
 import { VolumeCommand } from './commands/volume.command';
 // Services
+import { AudioControlService } from './services/audio-control.service';
 import { DisTubeService } from './services/distube.service';
 import { MusicService } from './services/music.service';
+import { PlayMusicService } from './services/play-music.service';
+import { PlaylistDuplicateService } from './services/playlist-duplicate.service';
+import { QueueManagementService } from './services/queue-management.service';
 
 /**
  * MusicModule encapsulates all music-related functionality
@@ -27,6 +31,10 @@ import { MusicService } from './services/music.service';
 	providers: [
 		// Services (order matters for dependency injection)
 		DisTubeService,
+		AudioControlService,
+		QueueManagementService,
+		PlaylistDuplicateService,
+		PlayMusicService,
 		MusicService,
 
 		// Commands
