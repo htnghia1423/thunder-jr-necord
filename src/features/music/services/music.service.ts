@@ -404,9 +404,12 @@ export class MusicService {
 					// Already added, just return success message
 					break;
 
-				case PlaylistDuplicateAction.NEW_ONLY:
+				case PlaylistDuplicateAction.NEW_ONLY: {
 					// Remove duplicate songs from queue
-					for (const duplicate of duplicateAnalysis.duplicates.reverse()) {
+					const reversedDuplicates = [
+						...duplicateAnalysis.duplicates,
+					].reverse();
+					for (const duplicate of reversedDuplicates) {
 						// Find the newly added duplicate in queue and remove it
 						const songIndex = queue.songs.findIndex(
 							// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -418,6 +421,7 @@ export class MusicService {
 						}
 					}
 					break;
+				}
 
 				case PlaylistDuplicateAction.CANCEL: {
 					// Remove all newly added songs from playlist
@@ -840,7 +844,7 @@ export class MusicService {
 
 				let songToRemove: ExtendedSong | null = null;
 				let removeIndex = -1;
-				let method: 'position' | 'name' = 'position';
+				let method: 'position' | 'name' = 'position'; // Default value
 
 				if (options.position) {
 					// Remove by position (1-based)
@@ -853,7 +857,7 @@ export class MusicService {
 						return;
 					}
 					songToRemove = queue.songs[removeIndex];
-					method = 'position';
+					// method remains 'position' (default value)
 				} else if (options.songName) {
 					// Remove by name (fuzzy search)
 					const searchTerm = options.songName.toLowerCase();
@@ -957,8 +961,14 @@ export class MusicService {
 				queue.setRepeatMode(mode as unknown as RepeatMode);
 
 				const modeText = LoopModeNames[mode];
-				const emoji =
-					mode === LoopMode.OFF ? '⏹️' : mode === LoopMode.SONG ? '🔂' : '🔁';
+				let emoji: string;
+				if (mode === LoopMode.OFF) {
+					emoji = '⏹️';
+				} else if (mode === LoopMode.SONG) {
+					emoji = '🔂';
+				} else {
+					emoji = '🔁';
+				}
 
 				resolve({
 					success: true,
@@ -1011,7 +1021,9 @@ export class MusicService {
 				}
 
 				// Shuffle the queue (keep current song at index 0)
-				void queue.shuffle();
+				queue.shuffle().catch((shuffleError) => {
+					this.logger.error('Error shuffling queue', shuffleError);
+				});
 
 				resolve({
 					success: true,
