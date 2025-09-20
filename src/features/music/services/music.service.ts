@@ -916,6 +916,38 @@ export class MusicService {
 	}
 
 	/**
+	 * Validate guild and get queue for music operations
+	 */
+	private validateGuildAndGetQueue(
+		interaction: ChatInputCommandInteraction,
+	):
+		| { success: true; queue: ExtendedQueue }
+		| { success: false; message: string } {
+		const guildId = interaction.guildId;
+		if (!guildId) {
+			return {
+				success: false,
+				message: MusicResponse.GENERIC_ERROR,
+			};
+		}
+
+		const distube = this.distubeService.getDistube();
+		const queue = distube.getQueue(guildId) as ExtendedQueue | null;
+
+		if (!queue) {
+			return {
+				success: false,
+				message: MusicResponse.NO_QUEUE,
+			};
+		}
+
+		return {
+			success: true,
+			queue,
+		};
+	}
+
+	/**
 	 * Create a progress bar for now playing
 	 */
 	private createProgressBar(currentTime: number, totalTime: number): string {
@@ -937,25 +969,17 @@ export class MusicService {
 	): Promise<MusicOperationResult> {
 		return new Promise((resolve) => {
 			try {
-				const guildId = interaction.guildId;
-				if (!guildId) {
+				const validation = this.validateGuildAndGetQueue(interaction);
+
+				if (!validation.success) {
 					resolve({
 						success: false,
-						message: MusicResponse.GENERIC_ERROR,
+						message: validation.message,
 					});
 					return;
 				}
 
-				const distube = this.distubeService.getDistube();
-				const queue = distube.getQueue(guildId) as ExtendedQueue | null;
-
-				if (!queue) {
-					resolve({
-						success: false,
-						message: MusicResponse.NO_QUEUE,
-					});
-					return;
-				}
+				const { queue } = validation;
 
 				// Set the loop mode (DisTube RepeatMode: 0=OFF, 1=SONG, 2=QUEUE)
 				queue.setRepeatMode(mode as unknown as RepeatMode);
@@ -992,25 +1016,17 @@ export class MusicService {
 	): Promise<MusicOperationResult> {
 		return new Promise((resolve) => {
 			try {
-				const guildId = interaction.guildId;
-				if (!guildId) {
+				const validation = this.validateGuildAndGetQueue(interaction);
+
+				if (!validation.success) {
 					resolve({
 						success: false,
-						message: MusicResponse.GENERIC_ERROR,
+						message: validation.message,
 					});
 					return;
 				}
 
-				const distube = this.distubeService.getDistube();
-				const queue = distube.getQueue(guildId) as ExtendedQueue | null;
-
-				if (!queue) {
-					resolve({
-						success: false,
-						message: MusicResponse.NO_QUEUE,
-					});
-					return;
-				}
+				const { queue } = validation;
 
 				if (queue.songs.length < 2) {
 					resolve({
