@@ -834,7 +834,7 @@ export class MusicService {
 				const distube = this.distubeService.getDistube();
 				const queue = distube.getQueue(guildId) as ExtendedQueue | null;
 
-				if (!queue || !queue.songs.length) {
+				if (!queue?.songs?.length) {
 					resolve({
 						success: false,
 						message: 'No songs in queue.',
