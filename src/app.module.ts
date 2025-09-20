@@ -5,6 +5,7 @@ import { IntentsBitField } from 'discord.js';
 import { NecordModule, NecordModuleOptions } from 'necord';
 
 import { BotGateway } from '@/bot.gateway';
+import { MusicModule } from '@/features/music/music.module';
 import { UtilityModule } from '@/features/utility/utility.module';
 
 @Module({
@@ -22,6 +23,8 @@ import { UtilityModule } from '@/features/utility/utility.module';
 					token: configService.getOrThrow<string>('DISCORD_TOKEN'),
 					intents: [
 						IntentsBitField.Flags.Guilds, // Intent needed for the bot to recognize guilds
+						IntentsBitField.Flags.GuildVoiceStates, // Intent needed for voice channel access
+						IntentsBitField.Flags.GuildMessages, // Intent needed for text channel interaction
 					],
 				};
 
@@ -37,6 +40,7 @@ import { UtilityModule } from '@/features/utility/utility.module';
 		}),
 
 		// 3. Import your feature modules
+		MusicModule,
 		UtilityModule,
 	],
 	// 4. Register the gateway to listen for events

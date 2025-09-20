@@ -1,12 +1,14 @@
+import { UTILITY_COMMAND_METADATA } from '../constants/command-metadata';
 import { Injectable } from '@nestjs/common';
+import { MessageFlags } from 'discord.js';
 import { Context, SlashCommand } from 'necord';
 import type { SlashCommandContext } from 'necord';
 
 @Injectable()
 export class PingCommand {
 	@SlashCommand({
-		name: 'ping',
-		description: "Checks the bot's latency.",
+		name: UTILITY_COMMAND_METADATA.ping.name,
+		description: UTILITY_COMMAND_METADATA.ping.description,
 	})
 	public async onPing(@Context() context: SlashCommandContext) {
 		const [interaction] = context;
@@ -14,7 +16,7 @@ export class PingCommand {
 
 		return interaction.reply({
 			content: `🏓 Pong! My latency is ${latency}ms.`,
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 	}
 }
