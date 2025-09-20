@@ -1,5 +1,7 @@
-import { User } from 'discord.js';
+import { ChatInputCommandInteraction, User } from 'discord.js';
 import { Queue, Song } from 'distube';
+
+import type { PlayResult } from './music.interface';
 
 // Extended DisTube Song interface with additional properties we use
 export interface ExtendedSong extends Omit<Song, 'uploader'> {
@@ -63,4 +65,35 @@ export function toSongArray(songs: ExtendedSong[]): Song[] {
  */
 export function toQueue(queue: ExtendedQueue): Queue {
 	return queue as unknown as Queue;
+}
+
+// Parameter objects for reducing method parameter count (S107 compliance)
+
+/**
+ * Parameters for processPlaylistDuplicates method
+ */
+export interface ProcessPlaylistDuplicatesParams {
+	interaction: ChatInputCommandInteraction;
+	finalQueue: ExtendedQueue | null;
+	songsAdded: number;
+	originalQueueLength: number;
+	currentSong: ExtendedSong | undefined;
+	wasQueueEmpty: boolean;
+	isPlaylist: boolean;
+	existingQueue: ExtendedQueue | null;
+	resolve: (result: PlayResult) => void;
+}
+
+/**
+ * Parameters for handleSignificantPlaylistDuplicates method
+ */
+export interface HandleSignificantPlaylistDuplicatesParams {
+	interaction: ChatInputCommandInteraction;
+	duplicateAnalysis: DuplicateAnalysisResult;
+	currentSong: ExtendedSong | undefined;
+	wasQueueEmpty: boolean;
+	isPlaylist: boolean;
+	songsAdded: number;
+	existingQueue: ExtendedQueue | null;
+	resolve: (result: PlayResult) => void;
 }

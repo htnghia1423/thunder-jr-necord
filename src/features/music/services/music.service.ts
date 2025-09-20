@@ -6,6 +6,8 @@ import {
 	DuplicateCheckResult,
 	ExtendedQueue,
 	ExtendedSong,
+	HandleSignificantPlaylistDuplicatesParams,
+	ProcessPlaylistDuplicatesParams,
 	toSong,
 	toSongArray,
 } from '../interfaces/distube-types.interface';
@@ -127,7 +129,7 @@ export class MusicService {
 			isPlaylist && !wasQueueEmpty && existingQueue?.songs;
 
 		if (shouldHandlePlaylistDuplicates) {
-			await this.processPlaylistDuplicates(
+			await this.processPlaylistDuplicates({
 				interaction,
 				finalQueue,
 				songsAdded,
@@ -137,7 +139,7 @@ export class MusicService {
 				isPlaylist,
 				existingQueue,
 				resolve,
-			);
+			});
 			return;
 		}
 
@@ -167,16 +169,20 @@ export class MusicService {
 	 * Process playlist duplicates
 	 */
 	private async processPlaylistDuplicates(
-		interaction: ChatInputCommandInteraction,
-		finalQueue: ExtendedQueue | null,
-		songsAdded: number,
-		originalQueueLength: number,
-		currentSong: ExtendedSong | undefined,
-		wasQueueEmpty: boolean,
-		isPlaylist: boolean,
-		existingQueue: ExtendedQueue | null,
-		resolve: (result: PlayResult) => void,
+		params: ProcessPlaylistDuplicatesParams,
 	): Promise<void> {
+		const {
+			interaction,
+			finalQueue,
+			songsAdded,
+			originalQueueLength,
+			currentSong,
+			wasQueueEmpty,
+			isPlaylist,
+			existingQueue,
+			resolve,
+		} = params;
+
 		const addedSongs = finalQueue?.songs.slice(-songsAdded) || [];
 		const originalQueueSongs =
 			finalQueue?.songs.slice(0, originalQueueLength) || [];
@@ -193,7 +199,7 @@ export class MusicService {
 				duplicateThreshold;
 
 		if (hasSignificantDuplicates) {
-			await this.handleSignificantPlaylistDuplicates(
+			await this.handleSignificantPlaylistDuplicates({
 				interaction,
 				duplicateAnalysis,
 				currentSong,
@@ -202,7 +208,7 @@ export class MusicService {
 				songsAdded,
 				existingQueue,
 				resolve,
-			);
+			});
 		} else {
 			resolve(
 				this.createSuccessResult(
@@ -221,15 +227,19 @@ export class MusicService {
 	 * Handle significant playlist duplicates
 	 */
 	private async handleSignificantPlaylistDuplicates(
-		interaction: ChatInputCommandInteraction,
-		duplicateAnalysis: DuplicateAnalysisResult,
-		currentSong: ExtendedSong | undefined,
-		wasQueueEmpty: boolean,
-		isPlaylist: boolean,
-		songsAdded: number,
-		existingQueue: ExtendedQueue | null,
-		resolve: (result: PlayResult) => void,
+		params: HandleSignificantPlaylistDuplicatesParams,
 	): Promise<void> {
+		const {
+			interaction,
+			duplicateAnalysis,
+			currentSong,
+			wasQueueEmpty,
+			isPlaylist,
+			songsAdded,
+			existingQueue,
+			resolve,
+		} = params;
+
 		const duplicateMessage = DuplicateUtils.generatePlaylistDuplicateMessage(
 			duplicateAnalysis.totalSongs,
 			duplicateAnalysis.duplicateCount,
