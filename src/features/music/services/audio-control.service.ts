@@ -2,6 +2,7 @@ import { LoopMode, LoopModeNames } from '../enums/loop.enum';
 import { MusicResponse } from '../enums/music.enum';
 import { ExtendedQueue } from '../interfaces/distube-types.interface';
 import { MusicOperationResult } from '../interfaces/music.interface';
+import { MusicValidationUtils } from '../utils/music-validation.utils';
 import { Injectable, Logger } from '@nestjs/common';
 import { ChatInputCommandInteraction, VoiceBasedChannel } from 'discord.js';
 import { RepeatMode } from 'distube';
@@ -13,38 +14,6 @@ export class AudioControlService {
 	private readonly logger = new Logger(AudioControlService.name);
 
 	constructor(private readonly distubeService: DisTubeService) {}
-
-	/**
-	 * Validate guild and get queue for music operations
-	 */
-	private validateGuildAndGetQueue(
-		interaction: ChatInputCommandInteraction,
-	):
-		| { success: true; queue: ExtendedQueue }
-		| { success: false; message: string } {
-		const guildId = interaction.guildId;
-		if (!guildId) {
-			return {
-				success: false,
-				message: MusicResponse.GENERIC_ERROR,
-			};
-		}
-
-		const distube = this.distubeService.getDistube();
-		const queue = distube.getQueue(guildId) as ExtendedQueue | null;
-
-		if (!queue) {
-			return {
-				success: false,
-				message: MusicResponse.NO_QUEUE,
-			};
-		}
-
-		return {
-			success: true,
-			queue,
-		};
-	}
 
 	/**
 	 * Create a progress bar for now playing
@@ -141,7 +110,10 @@ export class AudioControlService {
 	): Promise<MusicOperationResult> {
 		return new Promise((resolve) => {
 			try {
-				const validation = this.validateGuildAndGetQueue(interaction);
+				const validation = MusicValidationUtils.validateGuildAndGetQueue(
+					interaction,
+					this.distubeService.getDistube(),
+				);
 
 				if (!validation.success) {
 					resolve({
@@ -154,7 +126,7 @@ export class AudioControlService {
 				const { queue } = validation;
 
 				// Set the loop mode (DisTube RepeatMode: 0=OFF, 1=SONG, 2=QUEUE)
-				queue.setRepeatMode(mode as unknown as RepeatMode);
+				(queue as ExtendedQueue).setRepeatMode(mode as unknown as RepeatMode);
 
 				const modeText = LoopModeNames[mode];
 				let emoji: string;

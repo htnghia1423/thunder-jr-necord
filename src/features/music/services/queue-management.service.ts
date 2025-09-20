@@ -22,38 +22,6 @@ export class QueueManagementService {
 	constructor(private readonly distubeService: DisTubeService) {}
 
 	/**
-	 * Validate guild and get queue for music operations
-	 */
-	private validateGuildAndGetQueue(
-		interaction: ChatInputCommandInteraction,
-	):
-		| { success: true; queue: ExtendedQueue }
-		| { success: false; message: string } {
-		const guildId = interaction.guildId;
-		if (!guildId) {
-			return {
-				success: false,
-				message: MusicResponse.GENERIC_ERROR,
-			};
-		}
-
-		const distube = this.distubeService.getDistube();
-		const queue = distube.getQueue(guildId) as ExtendedQueue | null;
-
-		if (!queue) {
-			return {
-				success: false,
-				message: MusicResponse.NO_QUEUE,
-			};
-		}
-
-		return {
-			success: true,
-			queue,
-		};
-	}
-
-	/**
 	 * Skip current song
 	 */
 	async skip(interaction: ChatInputCommandInteraction): Promise<SkipResult> {
@@ -441,7 +409,10 @@ export class QueueManagementService {
 	): Promise<MusicOperationResult> {
 		return new Promise((resolve) => {
 			try {
-				const validation = this.validateGuildAndGetQueue(interaction);
+				const validation = MusicValidationUtils.validateGuildAndGetQueue(
+					interaction,
+					this.distubeService.getDistube(),
+				);
 
 				if (!validation.success) {
 					resolve({
@@ -451,7 +422,7 @@ export class QueueManagementService {
 					return;
 				}
 
-				const { queue } = validation;
+				const { queue } = validation as { success: true; queue: ExtendedQueue };
 
 				if (queue.songs.length < 2) {
 					resolve({

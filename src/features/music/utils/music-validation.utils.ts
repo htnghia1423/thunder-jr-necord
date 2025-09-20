@@ -88,4 +88,34 @@ export class MusicValidationUtils {
 			},
 		};
 	}
+
+	/**
+	 * Validate guild and get queue for basic queue operations
+	 */
+	static validateGuildAndGetQueue(
+		interaction: ChatInputCommandInteraction,
+		distube: DisTube,
+	): { success: true; queue: Queue } | { success: false; message: string } {
+		const guildId = interaction.guildId;
+		if (!guildId) {
+			return {
+				success: false,
+				message: MusicResponse.GENERIC_ERROR,
+			};
+		}
+
+		const queue = distube.getQueue(guildId);
+
+		if (!queue) {
+			return {
+				success: false,
+				message: MusicResponse.NO_QUEUE,
+			};
+		}
+
+		return {
+			success: true,
+			queue,
+		};
+	}
 }
