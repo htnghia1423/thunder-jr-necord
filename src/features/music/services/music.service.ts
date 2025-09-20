@@ -2,6 +2,14 @@ import { LoopMode, LoopModeNames } from '../enums/loop.enum';
 import { MusicResponse } from '../enums/music.enum';
 import { PlaylistDuplicateAction } from '../enums/playlist-duplicate.enum';
 import {
+	DuplicateAnalysisResult,
+	DuplicateCheckResult,
+	ExtendedQueue,
+	ExtendedSong,
+	toSong,
+	toSongArray,
+} from '../interfaces/distube-types.interface';
+import {
 	MusicOperationResult,
 	PlayResult,
 	QueueResult,
@@ -44,164 +52,7 @@ export class MusicService {
 				}
 
 				const { guildId, voiceChannel } = validation.data!;
-				const distube = this.distubeService.getDistube();
-
-				// Check if queue exists and has songs before playing
-				const existingQueue = distube.getQueue(guildId);
-				const wasQueueEmpty =
-					!existingQueue || existingQueue.songs.length === 0;
-
-				// Store original queue length before adding new songs
-				const originalQueueLength = existingQueue?.songs.length || 0;
-
-				// Play the song
-				distube
-					.play(voiceChannel, query, {
-						// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-						member: interaction.member as any,
-						// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-						textChannel: interaction.channel as any,
-					})
-					.then(async () => {
-						// After playing, check the final queue state
-						const finalQueue = distube.getQueue(guildId);
-						const currentSong = finalQueue?.songs[0];
-						const totalSongs = finalQueue?.songs.length || 0;
-						const songsAdded =
-							totalSongs - (wasQueueEmpty ? 0 : originalQueueLength);
-
-						// Detect if this was a playlist by checking if multiple songs were added
-						const isPlaylist = songsAdded > 1;
-
-						// Handle playlist duplicates
-						if (isPlaylist && !wasQueueEmpty && existingQueue?.songs) {
-							const addedSongs = finalQueue?.songs.slice(-songsAdded) || [];
-							// Use original queue songs (before new additions)
-							const originalQueueSongs =
-								finalQueue?.songs.slice(0, originalQueueLength) || [];
-
-							const duplicateAnalysis = DuplicateUtils.checkPlaylistDuplicates(
-								addedSongs,
-								originalQueueSongs,
-							);
-
-							// If duplicates found and significant (>10%), offer user choice
-							if (
-								duplicateAnalysis.duplicateCount > 0 &&
-								duplicateAnalysis.duplicateCount /
-									duplicateAnalysis.totalSongs >
-									0.1
-							) {
-								// Show duplicate summary and wait for user choice
-								const duplicateMessage =
-									DuplicateUtils.generatePlaylistDuplicateMessage(
-										duplicateAnalysis.totalSongs,
-										duplicateAnalysis.duplicateCount,
-										duplicateAnalysis.duplicates,
-									);
-
-								// Edit original response with duplicate info
-								await interaction.editReply({
-									content: duplicateMessage,
-								});
-
-								// Wait for user choice
-								const userChoice =
-									await PlaylistInteractionUtils.waitForUserChoice(
-										interaction,
-										30000,
-									);
-
-								if (userChoice) {
-									const result = await this.handlePlaylistDuplicateChoice(
-										interaction,
-										userChoice,
-										duplicateAnalysis,
-									);
-
-									resolve(result);
-									return;
-								} else {
-									// Timeout - default to ADD_ALL
-									const finalMessage =
-										PlaylistInteractionUtils.generateResultMessage(
-											PlaylistDuplicateAction.ADD_ALL,
-											duplicateAnalysis.totalSongs,
-											duplicateAnalysis.duplicateCount,
-											duplicateAnalysis.newSongs.length,
-										);
-
-									resolve({
-										success: true,
-										message: finalMessage,
-										data: {
-											songName: currentSong?.name,
-											duration: currentSong?.formattedDuration,
-											isNowPlaying: wasQueueEmpty,
-											wasQueueEmpty,
-											isPlaylist,
-											songsAdded,
-											queuePosition: wasQueueEmpty
-												? 0
-												: (existingQueue?.songs.length || 0) - 1,
-										},
-									});
-									return;
-								}
-							}
-						}
-
-						// Check for duplicates (only for single songs, not playlists)
-						let duplicateWarning = '';
-
-						if (!isPlaylist) {
-							// For single songs, check duplicates against original queue only
-							const songsToCheck = wasQueueEmpty
-								? []
-								: finalQueue?.songs.slice(0, originalQueueLength) || [];
-
-							if (songsToCheck.length > 0 && currentSong) {
-								const duplicateCheck = DuplicateUtils.checkDuplicate(
-									currentSong,
-									songsToCheck,
-								);
-								if (
-									duplicateCheck.isDuplicate &&
-									currentSong.name &&
-									duplicateCheck.position &&
-									duplicateCheck.matchType
-								) {
-									duplicateWarning = `\n\n${DuplicateUtils.generateDuplicateWarning(
-										currentSong.name,
-										duplicateCheck.position,
-										duplicateCheck.matchType,
-									)}`;
-								}
-							}
-						}
-
-						resolve({
-							success: true,
-							message: MusicResponse.SONG_ADDED,
-							data: {
-								songName: currentSong?.name,
-								duration: currentSong?.formattedDuration,
-								isNowPlaying: wasQueueEmpty, // If queue was empty, song is now playing
-								wasQueueEmpty,
-								isPlaylist,
-								songsAdded,
-								queuePosition: wasQueueEmpty ? 0 : originalQueueLength - 1, // Subtract 1 because DisTube counts currently playing song
-								duplicateWarning, // Add duplicate warning to response
-							},
-						});
-					})
-					.catch((error) => {
-						this.logger.error('Error playing song', error);
-						resolve({
-							success: false,
-							message: MusicResponse.PLAY_ERROR,
-						});
-					});
+				this.executePlay(interaction, guildId, voiceChannel, query, resolve);
 			} catch (error) {
 				this.logger.error('Error in play method', error);
 				resolve({
@@ -213,21 +64,307 @@ export class MusicService {
 	}
 
 	/**
+	 * Execute the actual play operation
+	 */
+	private executePlay(
+		interaction: ChatInputCommandInteraction,
+		guildId: string,
+		voiceChannel: VoiceBasedChannel,
+		query: string,
+		resolve: (result: PlayResult) => void,
+	): void {
+		const distube = this.distubeService.getDistube();
+		const existingQueue = distube.getQueue(guildId) as ExtendedQueue | null;
+		const wasQueueEmpty = !existingQueue || existingQueue.songs.length === 0;
+		const originalQueueLength = existingQueue?.songs.length || 0;
+
+		distube
+			.play(voiceChannel, query, {
+				// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+				member: interaction.member as any,
+				// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+				textChannel: interaction.channel as any,
+			})
+			.then(async () => {
+				await this.handlePlaySuccess(
+					interaction,
+					guildId,
+					wasQueueEmpty,
+					originalQueueLength,
+					existingQueue,
+					resolve,
+				);
+			})
+			.catch((error) => {
+				this.logger.error('Error playing song', error);
+				resolve({
+					success: false,
+					message: MusicResponse.PLAY_ERROR,
+				});
+			});
+	}
+
+	/**
+	 * Handle successful play operation
+	 */
+	private async handlePlaySuccess(
+		interaction: ChatInputCommandInteraction,
+		guildId: string,
+		wasQueueEmpty: boolean,
+		originalQueueLength: number,
+		existingQueue: ExtendedQueue | null,
+		resolve: (result: PlayResult) => void,
+	): Promise<void> {
+		const distube = this.distubeService.getDistube();
+		const finalQueue = distube.getQueue(guildId) as ExtendedQueue | null;
+		const currentSong = finalQueue?.songs[0];
+		const totalSongs = finalQueue?.songs.length || 0;
+		const songsAdded = totalSongs - (wasQueueEmpty ? 0 : originalQueueLength);
+		const isPlaylist = songsAdded > 1;
+
+		// Handle playlist duplicates if applicable
+		const shouldHandlePlaylistDuplicates =
+			isPlaylist && !wasQueueEmpty && existingQueue?.songs;
+
+		if (shouldHandlePlaylistDuplicates) {
+			await this.processPlaylistDuplicates(
+				interaction,
+				finalQueue,
+				songsAdded,
+				originalQueueLength,
+				currentSong,
+				wasQueueEmpty,
+				isPlaylist,
+				existingQueue,
+				resolve,
+			);
+			return;
+		}
+
+		// Handle single song duplicates
+		const duplicateWarning = this.getSingleSongDuplicateWarning(
+			isPlaylist,
+			wasQueueEmpty,
+			finalQueue,
+			originalQueueLength,
+			currentSong,
+		);
+
+		// Return successful result
+		resolve(
+			this.createSuccessResult(
+				currentSong,
+				wasQueueEmpty,
+				isPlaylist,
+				songsAdded,
+				originalQueueLength,
+				duplicateWarning,
+			),
+		);
+	}
+
+	/**
+	 * Process playlist duplicates
+	 */
+	private async processPlaylistDuplicates(
+		interaction: ChatInputCommandInteraction,
+		finalQueue: ExtendedQueue | null,
+		songsAdded: number,
+		originalQueueLength: number,
+		currentSong: ExtendedSong | undefined,
+		wasQueueEmpty: boolean,
+		isPlaylist: boolean,
+		existingQueue: ExtendedQueue | null,
+		resolve: (result: PlayResult) => void,
+	): Promise<void> {
+		const addedSongs = finalQueue?.songs.slice(-songsAdded) || [];
+		const originalQueueSongs =
+			finalQueue?.songs.slice(0, originalQueueLength) || [];
+
+		const duplicateAnalysis = DuplicateUtils.checkPlaylistDuplicates(
+			toSongArray(addedSongs),
+			toSongArray(originalQueueSongs),
+		) as DuplicateAnalysisResult;
+
+		const duplicateThreshold = 0.1;
+		const hasSignificantDuplicates =
+			duplicateAnalysis.duplicateCount > 0 &&
+			duplicateAnalysis.duplicateCount / duplicateAnalysis.totalSongs >
+				duplicateThreshold;
+
+		if (hasSignificantDuplicates) {
+			await this.handleSignificantPlaylistDuplicates(
+				interaction,
+				duplicateAnalysis,
+				currentSong,
+				wasQueueEmpty,
+				isPlaylist,
+				songsAdded,
+				existingQueue,
+				resolve,
+			);
+		} else {
+			resolve(
+				this.createSuccessResult(
+					currentSong,
+					wasQueueEmpty,
+					isPlaylist,
+					songsAdded,
+					originalQueueLength,
+					'',
+				),
+			);
+		}
+	}
+
+	/**
+	 * Handle significant playlist duplicates
+	 */
+	private async handleSignificantPlaylistDuplicates(
+		interaction: ChatInputCommandInteraction,
+		duplicateAnalysis: DuplicateAnalysisResult,
+		currentSong: ExtendedSong | undefined,
+		wasQueueEmpty: boolean,
+		isPlaylist: boolean,
+		songsAdded: number,
+		existingQueue: ExtendedQueue | null,
+		resolve: (result: PlayResult) => void,
+	): Promise<void> {
+		const duplicateMessage = DuplicateUtils.generatePlaylistDuplicateMessage(
+			duplicateAnalysis.totalSongs,
+			duplicateAnalysis.duplicateCount,
+			// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+			duplicateAnalysis.duplicates as any,
+		);
+
+		await interaction.editReply({ content: duplicateMessage });
+
+		const userChoice = await PlaylistInteractionUtils.waitForUserChoice(
+			interaction,
+			30000,
+		);
+
+		if (userChoice) {
+			const result = await this.handlePlaylistDuplicateChoice(
+				interaction,
+				userChoice,
+				duplicateAnalysis,
+			);
+			resolve(result);
+		} else {
+			// Timeout - default to ADD_ALL
+			const finalMessage = PlaylistInteractionUtils.generateResultMessage(
+				PlaylistDuplicateAction.ADD_ALL,
+				duplicateAnalysis.totalSongs,
+				duplicateAnalysis.duplicateCount,
+				duplicateAnalysis.newSongs.length,
+			);
+
+			resolve({
+				success: true,
+				message: finalMessage,
+				data: {
+					songName: currentSong?.name,
+					duration: currentSong?.formattedDuration,
+					isNowPlaying: wasQueueEmpty,
+					wasQueueEmpty,
+					isPlaylist,
+					songsAdded,
+					queuePosition: wasQueueEmpty
+						? 0
+						: (existingQueue?.songs.length || 0) - 1,
+				},
+			});
+		}
+	}
+
+	/**
+	 * Get duplicate warning for single songs
+	 */
+	private getSingleSongDuplicateWarning(
+		isPlaylist: boolean,
+		wasQueueEmpty: boolean,
+		finalQueue: ExtendedQueue | null,
+		originalQueueLength: number,
+		currentSong: ExtendedSong | undefined,
+	): string {
+		if (isPlaylist) {
+			return '';
+		}
+
+		const songsToCheck = wasQueueEmpty
+			? []
+			: finalQueue?.songs.slice(0, originalQueueLength) || [];
+
+		if (songsToCheck.length === 0 || !currentSong) {
+			return '';
+		}
+
+		const duplicateCheck = DuplicateUtils.checkDuplicate(
+			toSong(currentSong),
+			toSongArray(songsToCheck),
+		) as DuplicateCheckResult;
+
+		if (this.isDuplicateCheckValid(duplicateCheck, currentSong)) {
+			return `\n\n${DuplicateUtils.generateDuplicateWarning(
+				currentSong.name,
+				duplicateCheck.position!,
+				duplicateCheck.matchType!,
+			)}`;
+		}
+
+		return '';
+	}
+
+	/**
+	 * Check if duplicate check result is valid
+	 */
+	private isDuplicateCheckValid(
+		duplicateCheck: DuplicateCheckResult,
+		currentSong: ExtendedSong | undefined,
+	): boolean {
+		return Boolean(
+			duplicateCheck.isDuplicate &&
+				currentSong?.name &&
+				duplicateCheck.position &&
+				duplicateCheck.matchType,
+		);
+	}
+
+	/**
+	 * Create success result object
+	 */
+	private createSuccessResult(
+		currentSong: ExtendedSong | undefined,
+		wasQueueEmpty: boolean,
+		isPlaylist: boolean,
+		songsAdded: number,
+		originalQueueLength: number,
+		duplicateWarning: string,
+	): PlayResult {
+		return {
+			success: true,
+			message: MusicResponse.SONG_ADDED,
+			data: {
+				songName: currentSong?.name,
+				duration: currentSong?.formattedDuration,
+				isNowPlaying: wasQueueEmpty,
+				wasQueueEmpty,
+				isPlaylist,
+				songsAdded,
+				queuePosition: wasQueueEmpty ? 0 : originalQueueLength - 1,
+				duplicateWarning,
+			},
+		};
+	}
+
+	/**
 	 * Handle user choice for playlist duplicates
 	 */
 	private async handlePlaylistDuplicateChoice(
 		interaction: ChatInputCommandInteraction,
 		choice: PlaylistDuplicateAction,
-		duplicateAnalysis: {
-			totalSongs: number;
-			duplicates: Array<{
-				song: any;
-				existingPosition: number;
-				matchType: 'url' | 'name' | 'both';
-			}>;
-			newSongs: any[];
-			duplicateCount: number;
-		},
+		duplicateAnalysis: DuplicateAnalysisResult,
 	): Promise<PlayResult> {
 		return new Promise((resolve) => {
 			const guildId = interaction.guildId;
@@ -240,7 +377,7 @@ export class MusicService {
 			}
 
 			const distube = this.distubeService.getDistube();
-			const queue = distube.getQueue(guildId);
+			const queue = distube.getQueue(guildId) as ExtendedQueue | null;
 
 			if (!queue) {
 				resolve({
@@ -448,7 +585,7 @@ export class MusicService {
 				}
 
 				const distube = this.distubeService.getDistube();
-				const queue = distube.getQueue(guildId);
+				const queue = distube.getQueue(guildId) as ExtendedQueue | null;
 
 				if (!queue) {
 					resolve({
@@ -527,7 +664,7 @@ export class MusicService {
 				}
 
 				const distube = this.distubeService.getDistube();
-				const queue = distube.getQueue(guildId);
+				const queue = distube.getQueue(guildId) as ExtendedQueue | null;
 
 				if (!queue) {
 					resolve({
@@ -613,7 +750,7 @@ export class MusicService {
 				}
 
 				const distube = this.distubeService.getDistube();
-				const queue = distube.getQueue(guildId);
+				const queue = distube.getQueue(guildId) as ExtendedQueue | null;
 
 				if (!queue) {
 					resolve({
@@ -681,7 +818,7 @@ export class MusicService {
 				}
 
 				const distube = this.distubeService.getDistube();
-				const queue = distube.getQueue(guildId);
+				const queue = distube.getQueue(guildId) as ExtendedQueue | null;
 
 				if (!queue || !queue.songs.length) {
 					resolve({
@@ -691,7 +828,7 @@ export class MusicService {
 					return;
 				}
 
-				let songToRemove: any = null;
+				let songToRemove: ExtendedSong | null = null;
 				let removeIndex = -1;
 				let method: 'position' | 'name' = 'position';
 
@@ -749,7 +886,6 @@ export class MusicService {
 					success: true,
 					message: 'Song removed from queue.',
 					data: {
-						// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
 						songName: (songToRemove?.name as string) || 'Unknown',
 						position: removeIndex + 1, // Convert back to 1-based
 						method,
@@ -797,7 +933,7 @@ export class MusicService {
 				}
 
 				const distube = this.distubeService.getDistube();
-				const queue = distube.getQueue(guildId);
+				const queue = distube.getQueue(guildId) as ExtendedQueue | null;
 
 				if (!queue) {
 					resolve({
@@ -846,7 +982,7 @@ export class MusicService {
 				}
 
 				const distube = this.distubeService.getDistube();
-				const queue = distube.getQueue(guildId);
+				const queue = distube.getQueue(guildId) as ExtendedQueue | null;
 
 				if (!queue) {
 					resolve({
