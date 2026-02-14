@@ -39,7 +39,11 @@ export class DisTubeService implements OnModuleInit {
 					path: ffmpegPath.path,
 				},
 				plugins: [
-					new YouTubePlugin(),
+					// TODO: Add your YouTube cookies here to bypass age/region restrictions
+					// Instructions: Export cookies from browser using a cookie extension in Netscape format
+					new YouTubePlugin({
+						cookies: [], // Paste cookie array here when ready
+					}),
 					new SpotifyPlugin(),
 					new SoundCloudPlugin(),
 				],
@@ -88,9 +92,12 @@ export class DisTubeService implements OnModuleInit {
 			}
 		});
 
-		// Handle errors
-		(this.distube as any).on('error', (textChannel: any, error: any) => {
+		// Handle errors - DisTube v5 signature: (error, queue, song)
+		// We only need error and queue, so we omit the song parameter
+		(this.distube as any).on('error', (error: Error, queue: any) => {
 			this.logger.error('DisTube error:', error);
+			// Safely extract textChannel from queue object
+			const textChannel = queue?.textChannel;
 			if (textChannel) {
 				textChannel
 					.send(`❌ **Error:** ${error.message}`)
