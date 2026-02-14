@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 import { SoundCloudPlugin } from '@distube/soundcloud';
 import { SpotifyPlugin } from '@distube/spotify';
-import { YouTubePlugin } from '@distube/youtube';
+import { YtDlpPlugin } from '@distube/yt-dlp';
 import ffmpegPath from '@ffmpeg-installer/ffmpeg';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Client } from 'discord.js';
@@ -39,17 +39,13 @@ export class DisTubeService implements OnModuleInit {
 					path: ffmpegPath.path,
 				},
 				plugins: [
-					// TODO: Add your YouTube cookies here to bypass age/region restrictions
-					// Instructions: Export cookies from browser using a cookie extension in Netscape format
-					new YouTubePlugin({
-						cookies: [], // Paste cookie array here when ready
-					}),
 					new SpotifyPlugin(),
 					new SoundCloudPlugin(),
+					new YtDlpPlugin({ update: true }), // MUST be last in array
 				],
 			});
 
-			this.logger.log('DisTube initialized successfully with plugins');
+			this.logger.log('DisTube initialized successfully with yt-dlp plugin');
 		} catch (error) {
 			this.logger.error('Failed to initialize DisTube', error);
 			throw error;
