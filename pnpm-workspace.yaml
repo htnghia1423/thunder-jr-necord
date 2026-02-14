@@ -4,3 +4,8 @@ ignoredBuiltDependencies:
 
 onlyBuiltDependencies:
   - '@discordjs/opus'
+  - '@distube/yt-dlp'
+  - ffmpeg-static
+
+patchedDependencies:
+  '@distube/yt-dlp@2.0.1': patches/@distube__yt-dlp@2.0.1.patch

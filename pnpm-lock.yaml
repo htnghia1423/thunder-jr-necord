@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@distube/yt-dlp@2.0.1':
+    hash: d3c26688ebe1d84f03faed202ffa209287954767aab57a55a2c742e87265b364
+    path: patches/@distube__yt-dlp@2.0.1.patch
+
 importers:
 
   .:
@@ -19,7 +24,7 @@ importers:
         version: 2.0.2(distube@5.2.3(@discordjs/voice@0.19.0(@discordjs/opus@0.10.0)(ffmpeg-static@5.2.0)(opusscript@0.0.8))(discord.js@14.22.1))
       '@distube/yt-dlp':
         specifier: ^2.0.1
-        version: 2.0.1(distube@5.2.3(@discordjs/voice@0.19.0(@discordjs/opus@0.10.0)(ffmpeg-static@5.2.0)(opusscript@0.0.8))(discord.js@14.22.1))
+        version: 2.0.1(patch_hash=d3c26688ebe1d84f03faed202ffa209287954767aab57a55a2c742e87265b364)(distube@5.2.3(@discordjs/voice@0.19.0(@discordjs/opus@0.10.0)(ffmpeg-static@5.2.0)(opusscript@0.0.8))(discord.js@14.22.1))
       '@ffmpeg-installer/ffmpeg':
         specifier: ^1.1.0
         version: 1.1.0
@@ -4402,7 +4407,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@distube/yt-dlp@2.0.1(distube@5.2.3(@discordjs/voice@0.19.0(@discordjs/opus@0.10.0)(ffmpeg-static@5.2.0)(opusscript@0.0.8))(discord.js@14.22.1))':
+  '@distube/yt-dlp@2.0.1(patch_hash=d3c26688ebe1d84f03faed202ffa209287954767aab57a55a2c742e87265b364)(distube@5.2.3(@discordjs/voice@0.19.0(@discordjs/opus@0.10.0)(ffmpeg-static@5.2.0)(opusscript@0.0.8))(discord.js@14.22.1))':
     dependencies:
       dargs: 7.0.0
       distube: 5.2.3(@discordjs/voice@0.19.0(@discordjs/opus@0.10.0)(ffmpeg-static@5.2.0)(opusscript@0.0.8))(discord.js@14.22.1)
