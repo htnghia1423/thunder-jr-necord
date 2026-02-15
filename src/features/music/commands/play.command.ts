@@ -30,6 +30,15 @@ export class PlayCommand {
 		if (!interaction.isChatInputCommand()) return;
 
 		await interaction.deferReply();
+
+		// Provide user feedback when fetching YouTube playlists
+		if (song.includes('youtube.com') && song.includes('list=')) {
+			await interaction.editReply({
+				content:
+					'⏳ Fetching playlist via YouTube API. Please wait a moment...',
+			});
+		}
+
 		const result = await this.musicService.play(interaction, song);
 
 		if (!result.success) {

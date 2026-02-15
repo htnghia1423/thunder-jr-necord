@@ -30,6 +30,7 @@
 		"@nestjs/core": "^11.0.1",
 		"@nestjs/platform-express": "^11.0.1",
 		"@snazzah/davey": "^0.1.6",
+		"axios": "^1.13.5",
 		"distube": "^5.2.3",
 		"opusscript": "^0.0.8",
 		"reflect-metadata": "^0.2.2",

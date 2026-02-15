@@ -17,6 +17,7 @@ import { MusicService } from './services/music.service';
 import { PlayMusicService } from './services/play-music.service';
 import { PlaylistDuplicateService } from './services/playlist-duplicate.service';
 import { QueueManagementService } from './services/queue-management.service';
+import { YoutubeApiService } from './services/youtube-api.service';
 
 /**
  * MusicModule encapsulates all music-related functionality
@@ -34,6 +35,7 @@ import { QueueManagementService } from './services/queue-management.service';
 		AudioControlService,
 		QueueManagementService,
 		PlaylistDuplicateService,
+		YoutubeApiService,
 		PlayMusicService,
 		MusicService,
 

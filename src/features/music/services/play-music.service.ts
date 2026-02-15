@@ -14,6 +14,7 @@ import { ChatInputCommandInteraction, VoiceBasedChannel } from 'discord.js';
 
 import { DisTubeService } from './distube.service';
 import { PlaylistDuplicateService } from './playlist-duplicate.service';
+import { YoutubeApiService } from './youtube-api.service';
 
 @Injectable()
 export class PlayMusicService {
@@ -22,6 +23,7 @@ export class PlayMusicService {
 	constructor(
 		private readonly distubeService: DisTubeService,
 		private readonly playlistDuplicateService: PlaylistDuplicateService,
+		private readonly youtubeApiService: YoutubeApiService,
 	) {}
 
 	/**
@@ -45,7 +47,13 @@ export class PlayMusicService {
 				}
 
 				const { guildId, voiceChannel } = validation.data!;
-				this.executePlay(interaction, guildId, voiceChannel, query, resolve);
+				void this.executePlay(
+					interaction,
+					guildId,
+					voiceChannel,
+					query,
+					resolve,
+				);
 			} catch (error) {
 				this.logger.error('Error in play method', error);
 				resolve({
@@ -59,17 +67,75 @@ export class PlayMusicService {
 	/**
 	 * Execute the actual play operation
 	 */
-	private executePlay(
+	private async executePlay(
 		interaction: ChatInputCommandInteraction,
 		guildId: string,
 		voiceChannel: VoiceBasedChannel,
 		query: string,
 		resolve: (result: PlayResult) => void,
-	): void {
+	): Promise<void> {
 		const distube = this.distubeService.getDistube();
 		const existingQueue = distube.getQueue(guildId) as ExtendedQueue | null;
 		const wasQueueEmpty = !existingQueue || existingQueue.songs.length === 0;
 		const originalQueueLength = existingQueue?.songs.length || 0;
+		// YouTube API playlist optimization
+		const isYouTubePlaylist =
+			query.includes('youtube.com') && query.includes('list=');
+
+		if (isYouTubePlaylist) {
+			try {
+				const videoUrls = await this.youtubeApiService.getPlaylistItems(query);
+
+				if (videoUrls && videoUrls.length > 0) {
+					// Extract playlist ID for logging
+					const urlParams = new URLSearchParams(query.split('?')[1]);
+					const playlistId = urlParams.get('list');
+					this.logger.log(`Using YouTube API for playlist: ${playlistId}`);
+
+					// Create custom playlist with DisTube v5
+
+					const customPlaylist = await distube.createCustomPlaylist(videoUrls, {
+						// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+						member: interaction.member as any,
+						name: 'YouTube Playlist',
+					});
+
+					// Play the custom playlist
+					distube
+
+						.play(voiceChannel, customPlaylist, {
+							// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+							member: interaction.member as any,
+							// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+							textChannel: interaction.channel as any,
+						})
+						.then(async () => {
+							await this.handlePlaySuccess(
+								interaction,
+								guildId,
+								wasQueueEmpty,
+								originalQueueLength,
+								existingQueue,
+								resolve,
+							);
+						})
+						.catch((error) => {
+							this.logger.error('Error playing custom playlist', error);
+							resolve({
+								success: false,
+								message: MusicResponse.PLAY_ERROR,
+							});
+						});
+					return;
+				} else {
+					this.logger.warn('YouTube API failed, falling back to yt-dlp');
+				}
+			} catch {
+				this.logger.warn('YouTube API failed, falling back to yt-dlp');
+			}
+		}
+
+		// Fallback to original behavior (yt-dlp)
 
 		distube
 			.play(voiceChannel, query, {
