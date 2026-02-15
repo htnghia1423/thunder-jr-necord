@@ -62,9 +62,8 @@ export class YoutubeApiService {
 			return 0; // Live stream or invalid
 		}
 
-		const match = duration.match(
-			/P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?/,
-		);
+		const match =
+			/P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?/.exec(duration);
 
 		if (!match) {
 			this.logger.warn(`Invalid ISO 8601 duration format: ${duration}`);
@@ -74,10 +73,10 @@ export class YoutubeApiService {
 		const [, days, hours, minutes, seconds] = match;
 
 		return (
-			parseInt(days || '0', 10) * 86400 +
-			parseInt(hours || '0', 10) * 3600 +
-			parseInt(minutes || '0', 10) * 60 +
-			parseFloat(seconds || '0')
+			Number.parseInt(days || '0', 10) * 86400 +
+			Number.parseInt(hours || '0', 10) * 3600 +
+			Number.parseInt(minutes || '0', 10) * 60 +
+			Number.parseFloat(seconds || '0')
 		);
 	}
 
@@ -212,15 +211,14 @@ export class YoutubeApiService {
 
 			// Filter out deleted/private videos and map durations
 			const validVideoItems = videoItems.filter((item) => {
-				if (durationMap[item.id] !== undefined) {
-					item.duration = durationMap[item.id];
-					return true;
-				} else {
+				if (durationMap[item.id] === undefined) {
 					this.logger.warn(
 						`Removing deleted/private video from playlist: ${item.id} (${item.name})`,
 					);
 					return false;
 				}
+				item.duration = durationMap[item.id];
+				return true;
 			});
 
 			this.logger.log(

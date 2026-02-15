@@ -79,101 +79,161 @@ export class PlayMusicService {
 		const existingQueue = distube.getQueue(guildId) as ExtendedQueue | null;
 		const wasQueueEmpty = !existingQueue || existingQueue.songs.length === 0;
 		const originalQueueLength = existingQueue?.songs.length || 0;
+
 		// YouTube API playlist optimization
 		const isYouTubePlaylist =
 			query.includes('youtube.com') && query.includes('list=');
 
 		if (isYouTubePlaylist) {
-			try {
-				const apiItems = await this.youtubeApiService.getPlaylistItems(query);
-
-				if (apiItems && apiItems.length > 0) {
-					// Extract playlist ID for logging
-					const urlParams = new URLSearchParams(query.split('?')[1]);
-					const playlistId = urlParams.get('list');
-					this.logger.log(`Using YouTube API for playlist: ${playlistId}`);
-
-					// Create Song objects with metadata from YouTube API
-					// This bypasses DisTube's yt-dlp resolution and prevents freezing
-					const songs: Song[] = [];
-					for (const item of apiItems) {
-						try {
-							// Create Song with required DisTube v5 fields
-							const song = new Song({
-								plugin: null,
-								source: 'youtube',
-								playFromSource: true,
-								id: item.id,
-								name: item.name,
-								url: item.url,
-								thumbnail: item.thumbnail,
-								uploader: item.uploader
-									? { name: item.uploader, url: undefined }
-									: undefined,
-								duration: item.duration || 0, // Use real duration from YouTube API
-							});
-							songs.push(song);
-						} catch (error) {
-							// Skip invalid videos (deleted, private, etc.) and continue
-							this.logger.warn(
-								`Skipping invalid video ${item.id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-							);
-						}
-					}
-
-					if (songs.length === 0) {
-						this.logger.warn(
-							'No valid songs in playlist, falling back to yt-dlp',
-						);
-					} else {
-						this.logger.log(
-							`Created ${songs.length} Song objects from ${apiItems.length} API items`,
-						);
-
-						// Create custom playlist with pre-constructed Song objects
-						const customPlaylist = await distube.createCustomPlaylist(songs, {
-							// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-							member: interaction.member as any,
-							name: 'YouTube Playlist',
-							source: 'youtube',
-						});
-
-						// Play the custom playlist
-						distube
-							.play(voiceChannel, customPlaylist, {
-								// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-								member: interaction.member as any,
-								// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-								textChannel: interaction.channel as any,
-							})
-							.then(async () => {
-								await this.handlePlaySuccess(
-									interaction,
-									guildId,
-									wasQueueEmpty,
-									originalQueueLength,
-									existingQueue,
-									resolve,
-								);
-							})
-							.catch((error) => {
-								this.logger.error('Error playing custom playlist', error);
-								resolve({
-									success: false,
-									message: MusicResponse.PLAY_ERROR,
-								});
-							});
-						return;
-					}
-				} else {
-					this.logger.warn('YouTube API failed, falling back to yt-dlp');
-				}
-			} catch {
-				this.logger.warn('YouTube API failed, falling back to yt-dlp');
+			const handled = await this.handleYouTubePlaylist(
+				interaction,
+				guildId,
+				voiceChannel,
+				query,
+				wasQueueEmpty,
+				originalQueueLength,
+				existingQueue,
+				resolve,
+			);
+			if (handled) {
+				return;
 			}
 		}
 
 		// Fallback to original behavior (yt-dlp)
+		this.handleSingleSongOrFallback(
+			interaction,
+			guildId,
+			voiceChannel,
+			query,
+			wasQueueEmpty,
+			originalQueueLength,
+			existingQueue,
+			resolve,
+		);
+	}
+
+	/**
+	 * Handle YouTube playlist using YouTube API
+	 * Returns true if handled successfully, false to trigger fallback
+	 */
+	private async handleYouTubePlaylist(
+		interaction: ChatInputCommandInteraction,
+		guildId: string,
+		voiceChannel: VoiceBasedChannel,
+		query: string,
+		wasQueueEmpty: boolean,
+		originalQueueLength: number,
+		existingQueue: ExtendedQueue | null,
+		resolve: (result: PlayResult) => void,
+	): Promise<boolean> {
+		const distube = this.distubeService.getDistube();
+
+		try {
+			const apiItems = await this.youtubeApiService.getPlaylistItems(query);
+
+			if (!apiItems || apiItems.length === 0) {
+				this.logger.warn('YouTube API failed, falling back to yt-dlp');
+				return false;
+			}
+
+			// Extract playlist ID for logging
+			const urlParams = new URLSearchParams(query.split('?')[1]);
+			const playlistId = urlParams.get('list');
+			this.logger.log(`Using YouTube API for playlist: ${playlistId}`);
+
+			// Create Song objects with metadata from YouTube API
+			// This bypasses DisTube's yt-dlp resolution and prevents freezing
+			const songs: Song[] = [];
+			for (const item of apiItems) {
+				try {
+					// Create Song with required DisTube v5 fields
+					const song = new Song({
+						plugin: null,
+						source: 'youtube',
+						playFromSource: true,
+						id: item.id,
+						name: item.name,
+						url: item.url,
+						thumbnail: item.thumbnail,
+						uploader: item.uploader
+							? { name: item.uploader, url: undefined }
+							: undefined,
+						duration: item.duration || 0, // Use real duration from YouTube API
+					});
+					songs.push(song);
+				} catch (error) {
+					// Skip invalid videos (deleted, private, etc.) and continue
+					this.logger.warn(
+						`Skipping invalid video ${item.id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+					);
+				}
+			}
+
+			if (songs.length === 0) {
+				this.logger.warn('No valid songs in playlist, falling back to yt-dlp');
+				return false;
+			}
+
+			this.logger.log(
+				`Created ${songs.length} Song objects from ${apiItems.length} API items`,
+			);
+
+			// Create custom playlist with pre-constructed Song objects
+			const customPlaylist = await distube.createCustomPlaylist(songs, {
+				// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+				member: interaction.member as any,
+				name: 'YouTube Playlist',
+				source: 'youtube',
+			});
+
+			// Play the custom playlist
+			await distube
+				.play(voiceChannel, customPlaylist, {
+					// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+					member: interaction.member as any,
+					// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+					textChannel: interaction.channel as any,
+				})
+				.then(async () => {
+					await this.handlePlaySuccess(
+						interaction,
+						guildId,
+						wasQueueEmpty,
+						originalQueueLength,
+						existingQueue,
+						resolve,
+					);
+				})
+				.catch((error) => {
+					this.logger.error('Error playing custom playlist', error);
+					resolve({
+						success: false,
+						message: MusicResponse.PLAY_ERROR,
+					});
+				});
+
+			return true;
+		} catch {
+			this.logger.warn('YouTube API failed, falling back to yt-dlp');
+			return false;
+		}
+	}
+
+	/**
+	 * Handle single song or fallback to yt-dlp
+	 */
+	private handleSingleSongOrFallback(
+		interaction: ChatInputCommandInteraction,
+		guildId: string,
+		voiceChannel: VoiceBasedChannel,
+		query: string,
+		wasQueueEmpty: boolean,
+		originalQueueLength: number,
+		existingQueue: ExtendedQueue | null,
+		resolve: (result: PlayResult) => void,
+	): void {
+		const distube = this.distubeService.getDistube();
 
 		distube
 			.play(voiceChannel, query, {
