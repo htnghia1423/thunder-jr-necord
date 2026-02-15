@@ -17,6 +17,17 @@ import { DisTubeService } from './distube.service';
 import { PlaylistDuplicateService } from './playlist-duplicate.service';
 import { YoutubeApiService } from './youtube-api.service';
 
+interface PlayExecutionContext {
+	interaction: ChatInputCommandInteraction;
+	guildId: string;
+	voiceChannel: VoiceBasedChannel;
+	query: string;
+	wasQueueEmpty: boolean;
+	originalQueueLength: number;
+	existingQueue: ExtendedQueue | null;
+	resolve: (result: PlayResult) => void;
+}
+
 @Injectable()
 export class PlayMusicService {
 	private readonly logger = new Logger(PlayMusicService.name);
@@ -80,28 +91,8 @@ export class PlayMusicService {
 		const wasQueueEmpty = !existingQueue || existingQueue.songs.length === 0;
 		const originalQueueLength = existingQueue?.songs.length || 0;
 
-		// YouTube API playlist optimization
-		const isYouTubePlaylist =
-			query.includes('youtube.com') && query.includes('list=');
-
-		if (isYouTubePlaylist) {
-			const handled = await this.handleYouTubePlaylist(
-				interaction,
-				guildId,
-				voiceChannel,
-				query,
-				wasQueueEmpty,
-				originalQueueLength,
-				existingQueue,
-				resolve,
-			);
-			if (handled) {
-				return;
-			}
-		}
-
-		// Fallback to original behavior (yt-dlp)
-		this.handleSingleSongOrFallback(
+		// Build context object
+		const context: PlayExecutionContext = {
 			interaction,
 			guildId,
 			voiceChannel,
@@ -110,7 +101,21 @@ export class PlayMusicService {
 			originalQueueLength,
 			existingQueue,
 			resolve,
-		);
+		};
+
+		// YouTube API playlist optimization
+		const isYouTubePlaylist =
+			query.includes('youtube.com') && query.includes('list=');
+
+		if (isYouTubePlaylist) {
+			const handled = await this.handleYouTubePlaylist(context);
+			if (handled) {
+				return;
+			}
+		}
+
+		// Fallback to original behavior (yt-dlp)
+		this.handleSingleSongOrFallback(context);
 	}
 
 	/**
@@ -118,15 +123,19 @@ export class PlayMusicService {
 	 * Returns true if handled successfully, false to trigger fallback
 	 */
 	private async handleYouTubePlaylist(
-		interaction: ChatInputCommandInteraction,
-		guildId: string,
-		voiceChannel: VoiceBasedChannel,
-		query: string,
-		wasQueueEmpty: boolean,
-		originalQueueLength: number,
-		existingQueue: ExtendedQueue | null,
-		resolve: (result: PlayResult) => void,
+		context: PlayExecutionContext,
 	): Promise<boolean> {
+		const {
+			interaction,
+			guildId,
+			voiceChannel,
+			query,
+			wasQueueEmpty,
+			originalQueueLength,
+			existingQueue,
+			resolve,
+		} = context;
+
 		const distube = this.distubeService.getDistube();
 
 		try {
@@ -223,16 +232,18 @@ export class PlayMusicService {
 	/**
 	 * Handle single song or fallback to yt-dlp
 	 */
-	private handleSingleSongOrFallback(
-		interaction: ChatInputCommandInteraction,
-		guildId: string,
-		voiceChannel: VoiceBasedChannel,
-		query: string,
-		wasQueueEmpty: boolean,
-		originalQueueLength: number,
-		existingQueue: ExtendedQueue | null,
-		resolve: (result: PlayResult) => void,
-	): void {
+	private handleSingleSongOrFallback(context: PlayExecutionContext): void {
+		const {
+			interaction,
+			guildId,
+			voiceChannel,
+			query,
+			wasQueueEmpty,
+			originalQueueLength,
+			existingQueue,
+			resolve,
+		} = context;
+
 		const distube = this.distubeService.getDistube();
 
 		distube
