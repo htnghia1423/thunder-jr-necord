@@ -8,6 +8,7 @@ export interface PlaylistVideoItem {
 	url: string;
 	thumbnail?: string;
 	uploader?: string;
+	duration: number;
 }
 
 interface YouTubePlaylistItemSnippet {
@@ -32,11 +33,107 @@ interface YouTubePlaylistResponse {
 	nextPageToken?: string;
 }
 
+interface YouTubeVideoContentDetails {
+	duration: string; // ISO 8601 format
+}
+
+interface YouTubeVideoItem {
+	id: string;
+	contentDetails: YouTubeVideoContentDetails;
+}
+
+interface YouTubeVideosResponse {
+	items: YouTubeVideoItem[];
+}
+
 @Injectable()
 export class YoutubeApiService {
 	private readonly logger = new Logger(YoutubeApiService.name);
 
 	constructor(private readonly configService: ConfigService) {}
+
+	/**
+	 * Parse ISO 8601 duration format to seconds
+	 * Examples: PT4M13S -> 253, PT1H2M10S -> 3730, PT15S -> 15
+	 */
+	private parseISO8601Duration(duration: string): number {
+		// Handle edge cases
+		if (!duration || duration === 'PT0S' || duration === 'P0D') {
+			return 0; // Live stream or invalid
+		}
+
+		const match = duration.match(
+			/P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?/,
+		);
+
+		if (!match) {
+			this.logger.warn(`Invalid ISO 8601 duration format: ${duration}`);
+			return 0;
+		}
+
+		const [, days, hours, minutes, seconds] = match;
+
+		return (
+			parseInt(days || '0', 10) * 86400 +
+			parseInt(hours || '0', 10) * 3600 +
+			parseInt(minutes || '0', 10) * 60 +
+			parseFloat(seconds || '0')
+		);
+	}
+
+	/**
+	 * Batch-fetch video durations from YouTube API
+	 * Processes video IDs in chunks of 50 (YouTube API limit)
+	 */
+	private async getVideoDurations(
+		videoIds: string[],
+		apiKey: string,
+	): Promise<Record<string, number>> {
+		const durationMap: Record<string, number> = {};
+
+		// Chunk into batches of 50
+		const chunks: string[][] = [];
+		for (let i = 0; i < videoIds.length; i += 50) {
+			chunks.push(videoIds.slice(i, i + 50));
+		}
+
+		this.logger.log(
+			`Fetching durations for ${videoIds.length} videos in ${chunks.length} batches`,
+		);
+
+		// Process all batches
+		for (const chunk of chunks) {
+			try {
+				const response = await axios.get<YouTubeVideosResponse>(
+					'https://www.googleapis.com/youtube/v3/videos',
+					{
+						params: {
+							part: 'contentDetails',
+							id: chunk.join(','),
+							key: apiKey,
+						},
+					},
+				);
+
+				for (const item of response.data.items || []) {
+					const durationSeconds = this.parseISO8601Duration(
+						item.contentDetails.duration,
+					);
+					durationMap[item.id] = durationSeconds;
+				}
+			} catch (error) {
+				this.logger.error(
+					`Failed to fetch duration batch: ${error instanceof Error ? error.message : 'Unknown error'}`,
+				);
+				// Continue with other batches even if one fails
+			}
+		}
+
+		this.logger.log(
+			`Successfully fetched ${Object.keys(durationMap).length} durations`,
+		);
+		return durationMap;
+	}
 
 	async getPlaylistItems(
 		playlistUrl: string,
@@ -80,7 +177,7 @@ export class YoutubeApiService {
 
 				const items = response.data.items || [];
 
-				// Map items to video metadata objects
+				// Map items to video metadata objects (duration will be added later)
 				for (const item of items) {
 					const videoId = item.snippet.resourceId.videoId;
 					const thumbnail =
@@ -94,6 +191,7 @@ export class YoutubeApiService {
 						url: `https://www.youtube.com/watch?v=${videoId}`,
 						thumbnail,
 						uploader: item.snippet.videoOwnerChannelTitle,
+						duration: 0, // Will be fetched in batch below
 					});
 				}
 
@@ -108,7 +206,28 @@ export class YoutubeApiService {
 				`Successfully fetched ${videoItems.length} videos from playlist ${playlistId}`,
 			);
 
-			return videoItems;
+			// Batch-fetch durations for all videos
+			const videoIds = videoItems.map((item) => item.id);
+			const durationMap = await this.getVideoDurations(videoIds, apiKey);
+
+			// Filter out deleted/private videos and map durations
+			const validVideoItems = videoItems.filter((item) => {
+				if (durationMap[item.id] !== undefined) {
+					item.duration = durationMap[item.id];
+					return true;
+				} else {
+					this.logger.warn(
+						`Removing deleted/private video from playlist: ${item.id} (${item.name})`,
+					);
+					return false;
+				}
+			});
+
+			this.logger.log(
+				`Returning ${validVideoItems.length} valid videos (filtered ${videoItems.length - validVideoItems.length} deleted/private)`,
+			);
+
+			return validVideoItems;
 		} catch (error) {
 			this.logger.error(
 				`Failed to fetch playlist items: ${error instanceof Error ? error.message : 'Unknown error'}`,

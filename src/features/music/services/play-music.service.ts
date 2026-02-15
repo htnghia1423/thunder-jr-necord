@@ -110,7 +110,7 @@ export class PlayMusicService {
 								uploader: item.uploader
 									? { name: item.uploader, url: undefined }
 									: undefined,
-								duration: 0, // Will be fetched lazily when played
+								duration: item.duration || 0, // Use real duration from YouTube API
 							});
 							songs.push(song);
 						} catch (error) {
