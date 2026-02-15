@@ -2,7 +2,22 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 
+export interface PlaylistVideoItem {
+	name: string;
+	id: string;
+	url: string;
+	thumbnail?: string;
+	uploader?: string;
+}
+
 interface YouTubePlaylistItemSnippet {
+	title: string;
+	videoOwnerChannelTitle?: string;
+	thumbnails?: {
+		default?: { url: string };
+		medium?: { url: string };
+		high?: { url: string };
+	};
 	resourceId: {
 		videoId: string;
 	};
@@ -23,7 +38,9 @@ export class YoutubeApiService {
 
 	constructor(private readonly configService: ConfigService) {}
 
-	async getPlaylistItems(playlistUrl: string): Promise<string[] | null> {
+	async getPlaylistItems(
+		playlistUrl: string,
+	): Promise<PlaylistVideoItem[] | null> {
 		try {
 			// Extract playlist ID from URL (list= parameter)
 			const urlParams = new URLSearchParams(playlistUrl.split('?')[1]);
@@ -40,7 +57,7 @@ export class YoutubeApiService {
 				return null;
 			}
 
-			const videoUrls: string[] = [];
+			const videoItems: PlaylistVideoItem[] = [];
 			let nextPageToken: string | undefined;
 
 			// Fetch all pages using pagination
@@ -63,10 +80,21 @@ export class YoutubeApiService {
 
 				const items = response.data.items || [];
 
-				// Map items to video URLs
+				// Map items to video metadata objects
 				for (const item of items) {
 					const videoId = item.snippet.resourceId.videoId;
-					videoUrls.push(`https://www.youtube.com/watch?v=${videoId}`);
+					const thumbnail =
+						item.snippet.thumbnails?.high?.url ||
+						item.snippet.thumbnails?.medium?.url ||
+						item.snippet.thumbnails?.default?.url;
+
+					videoItems.push({
+						name: item.snippet.title,
+						id: videoId,
+						url: `https://www.youtube.com/watch?v=${videoId}`,
+						thumbnail,
+						uploader: item.snippet.videoOwnerChannelTitle,
+					});
 				}
 
 				// Check if there are more pages
@@ -77,10 +105,10 @@ export class YoutubeApiService {
 			}
 
 			this.logger.log(
-				`Successfully fetched ${videoUrls.length} videos from playlist ${playlistId}`,
+				`Successfully fetched ${videoItems.length} videos from playlist ${playlistId}`,
 			);
 
-			return videoUrls;
+			return videoItems;
 		} catch (error) {
 			this.logger.error(
 				`Failed to fetch playlist items: ${error instanceof Error ? error.message : 'Unknown error'}`,

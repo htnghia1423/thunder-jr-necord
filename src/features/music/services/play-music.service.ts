@@ -11,6 +11,7 @@ import { DuplicateUtils } from '../utils/duplicate.utils';
 import { MusicValidationUtils } from '../utils/music-validation.utils';
 import { Injectable, Logger } from '@nestjs/common';
 import { ChatInputCommandInteraction, VoiceBasedChannel } from 'discord.js';
+import { Song } from 'distube';
 
 import { DisTubeService } from './distube.service';
 import { PlaylistDuplicateService } from './playlist-duplicate.service';
@@ -84,49 +85,86 @@ export class PlayMusicService {
 
 		if (isYouTubePlaylist) {
 			try {
-				const videoUrls = await this.youtubeApiService.getPlaylistItems(query);
+				const apiItems = await this.youtubeApiService.getPlaylistItems(query);
 
-				if (videoUrls && videoUrls.length > 0) {
+				if (apiItems && apiItems.length > 0) {
 					// Extract playlist ID for logging
 					const urlParams = new URLSearchParams(query.split('?')[1]);
 					const playlistId = urlParams.get('list');
 					this.logger.log(`Using YouTube API for playlist: ${playlistId}`);
 
-					// Create custom playlist with DisTube v5
+					// Create Song objects with metadata from YouTube API
+					// This bypasses DisTube's yt-dlp resolution and prevents freezing
+					const songs: Song[] = [];
+					for (const item of apiItems) {
+						try {
+							// Create Song with required DisTube v5 fields
+							const song = new Song({
+								plugin: null,
+								source: 'youtube',
+								playFromSource: true,
+								id: item.id,
+								name: item.name,
+								url: item.url,
+								thumbnail: item.thumbnail,
+								uploader: item.uploader
+									? { name: item.uploader, url: undefined }
+									: undefined,
+								duration: 0, // Will be fetched lazily when played
+							});
+							songs.push(song);
+						} catch (error) {
+							// Skip invalid videos (deleted, private, etc.) and continue
+							this.logger.warn(
+								`Skipping invalid video ${item.id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+							);
+						}
+					}
 
-					const customPlaylist = await distube.createCustomPlaylist(videoUrls, {
-						// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-						member: interaction.member as any,
-						name: 'YouTube Playlist',
-					});
+					if (songs.length === 0) {
+						this.logger.warn(
+							'No valid songs in playlist, falling back to yt-dlp',
+						);
+					} else {
+						this.logger.log(
+							`Created ${songs.length} Song objects from ${apiItems.length} API items`,
+						);
 
-					// Play the custom playlist
-					distube
-
-						.play(voiceChannel, customPlaylist, {
+						// Create custom playlist with pre-constructed Song objects
+						const customPlaylist = await distube.createCustomPlaylist(songs, {
 							// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 							member: interaction.member as any,
-							// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-							textChannel: interaction.channel as any,
-						})
-						.then(async () => {
-							await this.handlePlaySuccess(
-								interaction,
-								guildId,
-								wasQueueEmpty,
-								originalQueueLength,
-								existingQueue,
-								resolve,
-							);
-						})
-						.catch((error) => {
-							this.logger.error('Error playing custom playlist', error);
-							resolve({
-								success: false,
-								message: MusicResponse.PLAY_ERROR,
-							});
+							name: 'YouTube Playlist',
+							source: 'youtube',
 						});
-					return;
+
+						// Play the custom playlist
+						distube
+							.play(voiceChannel, customPlaylist, {
+								// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+								member: interaction.member as any,
+								// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+								textChannel: interaction.channel as any,
+							})
+							.then(async () => {
+								await this.handlePlaySuccess(
+									interaction,
+									guildId,
+									wasQueueEmpty,
+									originalQueueLength,
+									existingQueue,
+									resolve,
+								);
+							})
+							.catch((error) => {
+								this.logger.error('Error playing custom playlist', error);
+								resolve({
+									success: false,
+									message: MusicResponse.PLAY_ERROR,
+								});
+							});
+						return;
+					}
 				} else {
 					this.logger.warn('YouTube API failed, falling back to yt-dlp');
 				}
