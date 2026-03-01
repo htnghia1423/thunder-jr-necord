@@ -2,7 +2,6 @@ import { MusicResponse } from '../enums/music.enum';
 import { PlaylistDuplicateAction } from '../enums/playlist-duplicate.enum';
 import {
 	DuplicateAnalysisResult,
-	ExtendedQueue,
 	ExtendedSong,
 	HandleSignificantPlaylistDuplicatesParams,
 	ProcessPlaylistDuplicatesParams,
@@ -109,7 +108,9 @@ export class PlaylistDuplicateService {
 			duplicateAnalysis.totalSongs,
 			duplicateAnalysis.duplicateCount,
 
-			duplicateAnalysis.duplicates as any,
+			duplicateAnalysis.duplicates as unknown as Parameters<
+				typeof DuplicateUtils.generatePlaylistDuplicateMessage
+			>[2],
 		);
 
 		await interaction.editReply({ content: duplicateMessage });

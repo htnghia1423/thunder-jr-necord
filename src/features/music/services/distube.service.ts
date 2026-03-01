@@ -148,6 +148,15 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 	}
 
 	private setupEventHandlers(): void {
+		// Set default volume to 100 when a new queue is created
+		// DisTube defaults to 50, so we override it here
+		this.distube.on(Events.INIT_QUEUE, (queue: Queue) => {
+			queue.setVolume(100);
+			this.logger.log(
+				`New queue initialized in guild ${queue.id}, set volume to 100%`,
+			);
+		});
+
 		// When a song starts playing - log and record stats
 		this.distube.on(Events.PLAY_SONG, (queue: Queue, song: Song) => {
 			this.logger.log(`Now playing: ${song.name} in guild ${queue.id}`);
