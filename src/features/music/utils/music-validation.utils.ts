@@ -1,5 +1,9 @@
 import { MusicResponse } from '../enums/music.enum';
-import { ChatInputCommandInteraction, VoiceBasedChannel } from 'discord.js';
+import {
+	ChatInputCommandInteraction,
+	PermissionFlagsBits,
+	VoiceBasedChannel,
+} from 'discord.js';
 import { DisTube, Queue } from 'distube';
 
 export interface ValidationResult {
@@ -14,6 +18,39 @@ export interface ValidationResult {
 }
 
 export class MusicValidationUtils {
+	/**
+	 * Validate bot has necessary permissions in voice channel
+	 */
+	static validateBotVoicePermissions(voiceChannel: VoiceBasedChannel): {
+		valid: boolean;
+		message?: string;
+	} {
+		const permissions = voiceChannel.permissionsFor(
+			voiceChannel.guild.members.me!,
+		);
+
+		if (!permissions) {
+			return {
+				valid: false,
+				message: MusicResponse.BOT_NO_PERMISSIONS,
+			};
+		}
+
+		const hasConnect = permissions.has(PermissionFlagsBits.Connect);
+		const hasSpeak = permissions.has(PermissionFlagsBits.Speak);
+
+		if (!hasConnect || !hasSpeak) {
+			return {
+				valid: false,
+				message: MusicResponse.BOT_NO_PERMISSIONS,
+			};
+		}
+
+		return {
+			valid: true,
+		};
+	}
+
 	/**
 	 * Validate basic music command requirements (guildId, voice channel)
 	 */
@@ -69,6 +106,16 @@ export class MusicValidationUtils {
 		}
 
 		const { guildId, voiceChannel } = basicValidation.data!;
+
+		// Validate bot permissions before proceeding
+		const permissionValidation = this.validateBotVoicePermissions(voiceChannel);
+		if (!permissionValidation.valid) {
+			return {
+				success: false,
+				message: permissionValidation.message,
+			};
+		}
+
 		const queue = distube.getQueue(guildId);
 
 		if (!queue) {

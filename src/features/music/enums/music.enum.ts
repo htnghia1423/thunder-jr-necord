@@ -45,4 +45,5 @@ export enum DisTubeEvents {
 	ERROR = 'error',
 	NO_RELATED = 'noRelated',
 	EMPTY = 'empty',
+	DISCONNECT = 'disconnect',
 }

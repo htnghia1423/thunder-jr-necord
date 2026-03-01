@@ -5,7 +5,12 @@ import { SoundCloudPlugin } from '@distube/soundcloud';
 import { SpotifyPlugin } from '@distube/spotify';
 import { YtDlpPlugin } from '@distube/yt-dlp';
 import ffmpegPath from '@ffmpeg-installer/ffmpeg';
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+	Injectable,
+	Logger,
+	OnModuleDestroy,
+	OnModuleInit,
+} from '@nestjs/common';
 import { Client } from 'discord.js';
 import { DisTube } from 'distube';
 
@@ -14,7 +19,7 @@ import { DisTube } from 'distube';
  * Separated from business logic for better maintainability
  */
 @Injectable()
-export class DisTubeService implements OnModuleInit {
+export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 	private readonly logger = new Logger(DisTubeService.name);
 	private distube: DisTube;
 
@@ -23,6 +28,46 @@ export class DisTubeService implements OnModuleInit {
 	onModuleInit() {
 		this.initializeDistube();
 		this.setupEventHandlers();
+	}
+
+	onModuleDestroy() {
+		this.logger.log('Starting DisTube cleanup...');
+
+		try {
+			// Stop all active queues
+			this.distube.voices.collection.forEach((queue) => {
+				try {
+					queue.stop();
+					this.logger.log(`Stopped queue for guild ${queue.id}`);
+				} catch (error) {
+					this.logger.error(
+						`Failed to stop queue for guild ${queue.id}`,
+						error,
+					);
+				}
+			});
+
+			// Leave all voice channels
+			this.distube.voices.collection.forEach((voice) => {
+				try {
+					this.distube.voices.leave(voice.id);
+					this.logger.log(`Left voice channel in guild ${voice.id}`);
+				} catch (error) {
+					this.logger.error(
+						`Failed to leave voice channel in guild ${voice.id}`,
+						error,
+					);
+				}
+			});
+
+			// Remove all event listeners to prevent memory leaks
+			this.distube.removeAllListeners();
+			this.logger.log('Removed all DisTube event listeners');
+
+			this.logger.log('DisTube cleanup completed successfully');
+		} catch (error) {
+			this.logger.error('Error during DisTube cleanup', error);
+		}
 	}
 
 	/**
@@ -101,6 +146,68 @@ export class DisTubeService implements OnModuleInit {
 						this.logger.error('Failed to send error message', sendError);
 					});
 			}
+		});
+
+		// Handle disconnect event - when bot is disconnected from voice channel
+		(this.distube as any).on('disconnect', (queue: any) => {
+			this.logger.log(
+				`Bot disconnected from voice channel in guild ${queue.id}`,
+			);
+			try {
+				queue.stop();
+				this.logger.log(`Queue stopped and cleaned up for guild ${queue.id}`);
+			} catch (error) {
+				this.logger.error(
+					`Failed to stop queue on disconnect for guild ${queue.id}`,
+					error,
+				);
+			}
+		});
+
+		// Handle empty event - when voice channel becomes empty
+		(this.distube as any).on('empty', (queue: any) => {
+			this.logger.log(
+				`Voice channel is empty in guild ${queue.id}, starting 60s timeout`,
+			);
+
+			// Wait 60 seconds before leaving
+			setTimeout(() => {
+				const voiceChannel = queue.voiceChannel;
+
+				// Check if channel still exists and is still empty
+				if (!voiceChannel) {
+					this.logger.log(
+						`Voice channel no longer exists for guild ${queue.id}`,
+					);
+					return;
+				}
+
+				// Count non-bot members in the channel
+				const memberCount = voiceChannel.members.filter(
+					(member: any) => !member.user.bot,
+				).size;
+
+				if (memberCount === 0) {
+					this.logger.log(
+						`Voice channel still empty after 60s in guild ${queue.id}, leaving...`,
+					);
+					try {
+						this.distube.voices.leave(queue.id);
+						this.logger.log(
+							`Left voice channel in guild ${queue.id} due to inactivity`,
+						);
+					} catch (error) {
+						this.logger.error(
+							`Failed to leave voice channel for guild ${queue.id}`,
+							error,
+						);
+					}
+				} else {
+					this.logger.log(
+						`Users rejoined voice channel in guild ${queue.id}, staying connected`,
+					);
+				}
+			}, 60000); // 60 seconds
 		});
 
 		this.logger.log('DisTube event handlers setup completed');
