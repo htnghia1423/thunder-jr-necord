@@ -104,8 +104,9 @@ export class PlayMusicService {
 		};
 
 		// YouTube API playlist optimization
-		const isYouTubePlaylist =
-			query.includes('youtube.com') && query.includes('list=');
+		// Only use API for standard playlists (PL*, UU*, FL*, etc.)
+		// Exclude YouTube Mixes (RD*) as they're not supported by the API
+		const isYouTubePlaylist = this.isYouTubeStandardPlaylist(query);
 
 		if (isYouTubePlaylist) {
 			const handled = await this.handleYouTubePlaylist(context);
@@ -116,6 +117,41 @@ export class PlayMusicService {
 
 		// Fallback to original behavior (yt-dlp)
 		this.handleSingleSongOrFallback(context);
+	}
+
+	/**
+	 * Check if query is a YouTube standard playlist (not a Mix)
+	 * Standard playlists: PL*, UU*, FL*, LL*, etc.
+	 * Mixes (not supported): RD*, RDMM*, RDAO*, RDCLAK*, etc.
+	 */
+	private isYouTubeStandardPlaylist(query: string): boolean {
+		if (!query.includes('youtube.com') || !query.includes('list=')) {
+			return false;
+		}
+
+		try {
+			const urlParams = new URLSearchParams(query.split('?')[1]);
+			const playlistId = urlParams.get('list');
+
+			if (!playlistId) {
+				return false;
+			}
+
+			// Exclude YouTube Mixes (they start with 'RD')
+			// This prevents hanging on API calls that don't support Mixes
+			if (playlistId.startsWith('RD')) {
+				this.logger.log(
+					`Detected YouTube Mix (${playlistId}), skipping API optimization`,
+				);
+				return false;
+			}
+
+			// Accept all other playlist types
+			return true;
+		} catch {
+			this.logger.warn(`Failed to parse playlist URL: ${query}`);
+			return false;
+		}
 	}
 
 	/**
