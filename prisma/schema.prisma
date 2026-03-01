@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,37 +6,33 @@ datasource db {
   provider = "postgresql"
 }
 
-// User model - represents Discord users
 model User {
   id        String     @id
   discordId String     @unique
   username  String
-  playlists Playlist[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+  playlists Playlist[]
 
   @@map("users")
 }
 
-// Playlist model - user-created playlists
 model Playlist {
   id        Int      @id @default(autoincrement())
   name      String
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  songs     Song[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  songs     Song[]
 
   @@index([userId])
   @@map("playlists")
 }
 
-// Song model - tracks in playlists
 model Song {
   id         Int      @id @default(autoincrement())
   playlistId Int
-  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
   title      String
   url        String
   thumbnail  String?
@@ -47,12 +40,12 @@ model Song {
   uploader   String?
   position   Int      @default(0)
   createdAt  DateTime @default(now())
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
 
   @@index([playlistId])
   @@map("songs")
 }
 
-// MusicHistory model - tracks song plays per guild for statistics
 model MusicHistory {
   id        Int      @id @default(autoincrement())
   guildId   String
