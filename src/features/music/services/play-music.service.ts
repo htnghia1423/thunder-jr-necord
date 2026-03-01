@@ -115,8 +115,24 @@ export class PlayMusicService {
 			}
 		}
 
+		// Strip Mix parameters before fallback to prevent DisTube from hanging
+		// YouTube Mixes (RD*) should play as single songs for instant playback
+		let cleanedQuery = query;
+		if (query.includes('youtube.com') && query.includes('list=')) {
+			cleanedQuery = this.stripMixParameters(query);
+			this.logger.log(
+				'Stripped Mix/playlist parameters from URL for instant playback',
+			);
+		}
+
+		// Update context with cleaned query
+		const fallbackContext: PlayExecutionContext = {
+			...context,
+			query: cleanedQuery,
+		};
+
 		// Fallback to original behavior (yt-dlp)
-		this.handleSingleSongOrFallback(context);
+		this.handleSingleSongOrFallback(fallbackContext);
 	}
 
 	/**
@@ -155,6 +171,32 @@ export class PlayMusicService {
 	}
 
 	/**
+	 * Strip Mix and playlist parameters from YouTube URL
+	 * Converts: https://www.youtube.com/watch?v=VIDEO_ID&list=RDXXX&start_radio=1
+	 * To:       https://www.youtube.com/watch?v=VIDEO_ID
+	 * This forces DisTube to treat it as a single song for instant playback
+	 */
+	private stripMixParameters(url: string): string {
+		try {
+			const urlObj = new URL(url);
+
+			// Keep only the video ID parameter
+			const videoId = urlObj.searchParams.get('v');
+
+			if (!videoId) {
+				this.logger.warn('No video ID found in URL, returning original');
+				return url;
+			}
+
+			// Reconstruct URL with only video ID
+			return `https://www.youtube.com/watch?v=${videoId}`;
+		} catch (error) {
+			this.logger.error(`Failed to parse URL: ${url}`, error);
+			return url; // Return original on error
+		}
+	}
+
+	/**
 	 * Handle YouTube playlist using YouTube API
 	 * Returns true if handled successfully, false to trigger fallback
 	 */
@@ -171,6 +213,11 @@ export class PlayMusicService {
 			existingQueue,
 			resolve,
 		} = context;
+
+		// Show playlist loading message (only for valid playlists)
+		await interaction.editReply(
+			'⏳ Fetching playlist via YouTube API. Please wait a moment...',
+		);
 
 		const distube = this.distubeService.getDistube();
 
