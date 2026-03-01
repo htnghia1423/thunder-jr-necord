@@ -1,11 +1,6 @@
 import { ExtendedSong } from '../interfaces/distube-types.interface';
 import { MusicConstants } from '../music.constants';
-import {
-	ActionRowBuilder,
-	ButtonBuilder,
-	ButtonStyle,
-	EmbedBuilder,
-} from 'discord.js';
+import { EmbedBuilder } from 'discord.js';
 
 /**
  * Queue-like interface that works with both Queue and ExtendedQueue
@@ -292,50 +287,112 @@ export class EmbedBuilderUtils {
 	}
 
 	/**
-	 * Create playback control buttons for the Now Playing message
-	 * @param queue - DisTube queue object
-	 * @returns ActionRow with 5 playback control buttons
+	 * Create an embed for when a playlist is successfully saved
+	 * @param playlistName - Name of the saved playlist
+	 * @param songCount - Number of songs in the playlist
+	 * @param username - Name of the user who saved the playlist
+	 * @returns EmbedBuilder configured for playlist save confirmation
 	 */
-	static createPlaybackButtons(
-		queue: QueueLike,
-	): ActionRowBuilder<ButtonBuilder> {
-		const isPaused = queue.paused || false;
+	static createPlaylistSavedEmbed(
+		playlistName: string,
+		songCount: number,
+		username: string,
+	): EmbedBuilder {
+		return new EmbedBuilder()
+			.setColor(MusicConstants.COLOR_SUCCESS)
+			.setTitle('💾 Playlist Saved')
+			.setDescription(
+				`Your playlist **${playlistName}** has been saved successfully!`,
+			)
+			.addFields(
+				{
+					name: '🎵 Songs',
+					value: `${songCount} song${songCount === 1 ? '' : 's'}`,
+					inline: true,
+				},
+				{
+					name: '👤 Owner',
+					value: username,
+					inline: true,
+				},
+			)
+			.setFooter({ text: `Use /playlist load ${playlistName} to load it` })
+			.setTimestamp();
+	}
 
-		return new ActionRowBuilder<ButtonBuilder>().addComponents(
-			// Previous button - disabled if no previous song
-			new ButtonBuilder()
-				.setCustomId('music_prev')
-				.setEmoji('⏮️')
-				.setStyle(ButtonStyle.Secondary)
-				.setDisabled(!queue.previousSongs || queue.previousSongs.length === 0),
+	/**
+	 * Create an embed for when a playlist is successfully loaded
+	 * @param playlistName - Name of the loaded playlist
+	 * @param songCount - Number of songs in the playlist
+	 * @returns EmbedBuilder configured for playlist load confirmation
+	 */
+	static createPlaylistLoadedEmbed(
+		playlistName: string,
+		songCount: number,
+	): EmbedBuilder {
+		return new EmbedBuilder()
+			.setColor(MusicConstants.COLOR_SUCCESS)
+			.setTitle('📂 Playlist Loaded')
+			.setDescription(
+				`Loading **${playlistName}** with ${songCount} song${songCount === 1 ? '' : 's'}...`,
+			)
+			.setTimestamp();
+	}
 
-			// Play/Pause button - changes based on paused state
-			new ButtonBuilder()
-				.setCustomId('music_play_pause')
-				.setEmoji(isPaused ? '▶️' : '⏸️')
-				.setStyle(isPaused ? ButtonStyle.Success : ButtonStyle.Primary)
-				.setDisabled(false),
+	/**
+	 * Create an embed displaying user's saved playlists
+	 * @param playlists - Array of playlist objects with name, song count, and updated date
+	 * @param username - Name of the user
+	 * @returns EmbedBuilder configured for playlist list display
+	 */
+	static createPlaylistListEmbed(
+		playlists: Array<{
+			name: string;
+			songCount: number;
+			updatedAt: Date;
+		}>,
+		username: string,
+	): EmbedBuilder {
+		const embed = new EmbedBuilder()
+			.setColor(MusicConstants.COLOR_INFO)
+			.setTitle(`📚 ${username}'s Playlists`)
+			.setTimestamp();
 
-			// Stop button
-			new ButtonBuilder()
-				.setCustomId('music_stop')
-				.setEmoji('⏹️')
-				.setStyle(ButtonStyle.Danger)
-				.setDisabled(false),
+		if (playlists.length === 0) {
+			embed.setDescription(
+				'You have no saved playlists yet.\nUse `/playlist save <name>` to save your current queue!',
+			);
+			return embed;
+		}
 
-			// Skip button - disabled if no next song
-			new ButtonBuilder()
-				.setCustomId('music_skip')
-				.setEmoji('⏭️')
-				.setStyle(ButtonStyle.Secondary)
-				.setDisabled(queue.songs.length <= 1),
+		// Build description with all playlists
+		let description = '';
+		playlists.forEach((playlist, index) => {
+			const updatedDate = new Date(playlist.updatedAt).toLocaleDateString();
+			description += `${index + 1}. **${playlist.name}**\n`;
+			description += `   └ ${playlist.songCount} song${playlist.songCount === 1 ? '' : 's'} • Last updated: ${updatedDate}\n\n`;
+		});
 
-			// Loop button - changes based on repeat mode
-			new ButtonBuilder()
-				.setCustomId('music_loop')
-				.setEmoji('🔁')
-				.setStyle(ButtonStyle.Primary)
-				.setDisabled(false),
-		);
+		embed.setDescription(description);
+		embed.setFooter({
+			text: `${playlists.length} playlist${playlists.length === 1 ? '' : 's'} total`,
+		});
+
+		return embed;
+	}
+
+	/**
+	 * Create an embed for when a playlist is successfully deleted
+	 * @param playlistName - Name of the deleted playlist
+	 * @returns EmbedBuilder configured for playlist delete confirmation
+	 */
+	static createPlaylistDeletedEmbed(playlistName: string): EmbedBuilder {
+		return new EmbedBuilder()
+			.setColor(MusicConstants.COLOR_SUCCESS)
+			.setTitle('🗑️ Playlist Deleted')
+			.setDescription(
+				`Playlist **${playlistName}** has been deleted successfully.`,
+			)
+			.setTimestamp();
 	}
 }

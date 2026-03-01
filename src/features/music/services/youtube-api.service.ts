@@ -1,51 +1,12 @@
+import {
+	type PlaylistVideoItem,
+	type YouTubePlaylistResponse,
+	type YouTubeVideosResponse,
+} from '../dto/youtube-api.dto';
 import { MusicConstants } from '../music.constants';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
-
-export interface PlaylistVideoItem {
-	name: string;
-	id: string;
-	url: string;
-	thumbnail?: string;
-	uploader?: string;
-	duration: number;
-}
-
-interface YouTubePlaylistItemSnippet {
-	title: string;
-	videoOwnerChannelTitle?: string;
-	thumbnails?: {
-		default?: { url: string };
-		medium?: { url: string };
-		high?: { url: string };
-	};
-	resourceId: {
-		videoId: string;
-	};
-}
-
-interface YouTubePlaylistItem {
-	snippet: YouTubePlaylistItemSnippet;
-}
-
-interface YouTubePlaylistResponse {
-	items: YouTubePlaylistItem[];
-	nextPageToken?: string;
-}
-
-interface YouTubeVideoContentDetails {
-	duration: string; // ISO 8601 format
-}
-
-interface YouTubeVideoItem {
-	id: string;
-	contentDetails: YouTubeVideoContentDetails;
-}
-
-interface YouTubeVideosResponse {
-	items: YouTubeVideoItem[];
-}
 
 @Injectable()
 export class YoutubeApiService {

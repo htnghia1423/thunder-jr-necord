@@ -1,3 +1,4 @@
+import { PlaybackControlsComponent } from '../components/playback-controls.component';
 import { MusicResponse } from '../enums/music.enum';
 import { MusicConstants } from '../music.constants';
 import { EmbedBuilderUtils } from '../utils/embed-builder.utils';
@@ -12,10 +13,7 @@ import {
 	OnModuleInit,
 } from '@nestjs/common';
 import {
-	ActionRowBuilder,
-	ButtonBuilder,
 	ButtonInteraction,
-	ButtonStyle,
 	Client,
 	ComponentType,
 	GuildMember,
@@ -104,35 +102,10 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 		message: Message<boolean>,
 	): Promise<void> {
 		try {
-			// Disable all buttons when collector expires
-			const disabledButtons =
-				new ActionRowBuilder<ButtonBuilder>().addComponents(
-					new ButtonBuilder()
-						.setCustomId('music_prev')
-						.setEmoji('⏮️')
-						.setStyle(ButtonStyle.Secondary)
-						.setDisabled(true),
-					new ButtonBuilder()
-						.setCustomId('music_play_pause')
-						.setEmoji('⏸️')
-						.setStyle(ButtonStyle.Primary)
-						.setDisabled(true),
-					new ButtonBuilder()
-						.setCustomId('music_stop')
-						.setEmoji('⏹️')
-						.setStyle(ButtonStyle.Danger)
-						.setDisabled(true),
-					new ButtonBuilder()
-						.setCustomId('music_skip')
-						.setEmoji('⏭️')
-						.setStyle(ButtonStyle.Secondary)
-						.setDisabled(true),
-					new ButtonBuilder()
-						.setCustomId('music_loop')
-						.setEmoji('🔁')
-						.setStyle(ButtonStyle.Primary)
-						.setDisabled(true),
-				);
+			// Disable all buttons when collector expires using PlaybackControlsComponent
+			const disabledButtons = PlaybackControlsComponent.create({
+				disabled: true,
+			});
 
 			await message.edit({ components: [disabledButtons] }).catch(() => {
 				// Message might have been deleted
@@ -386,7 +359,11 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 	): Promise<void> {
 		try {
 			const embed = EmbedBuilderUtils.createNowPlayingEmbed(queue as any);
-			const buttons = EmbedBuilderUtils.createPlaybackButtons(queue as any);
+			const buttons = PlaybackControlsComponent.create({
+				isPaused: queue.paused,
+				hasPreviousSongs: queue.previousSongs && queue.previousSongs.length > 0,
+				hasNextSongs: queue.songs.length > 1,
+			});
 
 			await interaction.message.edit({
 				embeds: [embed],

@@ -1,14 +1,10 @@
 import { MUSIC_COMMAND_METADATA } from '../../utility/constants/command-metadata';
+import { PaginationControlsComponent } from '../components/pagination-controls.component';
 import { MusicConstants } from '../music.constants';
 import { MusicService } from '../services/music.service';
 import { EmbedBuilderUtils } from '../utils/embed-builder.utils';
 import { Injectable } from '@nestjs/common';
-import {
-	ActionRowBuilder,
-	ButtonBuilder,
-	ButtonStyle,
-	ComponentType,
-} from 'discord.js';
+import { ComponentType } from 'discord.js';
 import { Context, SlashCommand } from 'necord';
 import type { SlashCommandContext } from 'necord';
 
@@ -61,25 +57,14 @@ export class QueueCommand {
 			return;
 		}
 
-		// Create pagination buttons
-		const createButtons = (page: number): ActionRowBuilder<ButtonBuilder> => {
-			return new ActionRowBuilder<ButtonBuilder>().addComponents(
-				new ButtonBuilder()
-					.setCustomId('previous')
-					.setLabel('◀️ Previous')
-					.setStyle(ButtonStyle.Primary)
-					.setDisabled(page === 1),
-				new ButtonBuilder()
-					.setCustomId('next')
-					.setLabel('Next ▶️')
-					.setStyle(ButtonStyle.Primary)
-					.setDisabled(page === totalPages),
-			);
-		};
-
 		const message = await interaction.editReply({
 			embeds: [initialEmbed],
-			components: [createButtons(currentPage)],
+			components: [
+				PaginationControlsComponent.create({
+					currentPage,
+					totalPages,
+				}),
+			],
 		});
 
 		// Create collector for button interactions
@@ -106,7 +91,12 @@ export class QueueCommand {
 			// Update message with new embed and button states
 			void buttonInteraction.update({
 				embeds: [newEmbed],
-				components: [createButtons(currentPage)],
+				components: [
+					PaginationControlsComponent.create({
+						currentPage,
+						totalPages,
+					}),
+				],
 			});
 		});
 

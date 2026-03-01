@@ -1,40 +1,12 @@
+import { DuplicateControlsComponent } from '../components/duplicate-controls.component';
 import { PlaylistDuplicateAction } from '../enums/playlist-duplicate.enum';
 import {
-	ActionRowBuilder,
-	ButtonBuilder,
 	type ButtonInteraction,
-	ButtonStyle,
 	type ChatInputCommandInteraction,
 	ComponentType,
 } from 'discord.js';
 
 export class PlaylistInteractionUtils {
-	/**
-	 * Create action row with duplicate handling buttons
-	 */
-	static createDuplicateButtons(): ActionRowBuilder<ButtonBuilder> {
-		const addAllButton = new ButtonBuilder()
-			.setCustomId(`playlist_duplicate_${PlaylistDuplicateAction.ADD_ALL}`)
-			.setLabel('🔄 Add All')
-			.setStyle(ButtonStyle.Primary);
-
-		const newOnlyButton = new ButtonBuilder()
-			.setCustomId(`playlist_duplicate_${PlaylistDuplicateAction.NEW_ONLY}`)
-			.setLabel('✨ New Only')
-			.setStyle(ButtonStyle.Success);
-
-		const cancelButton = new ButtonBuilder()
-			.setCustomId(`playlist_duplicate_${PlaylistDuplicateAction.CANCEL}`)
-			.setLabel('❌ Cancel')
-			.setStyle(ButtonStyle.Danger);
-
-		return new ActionRowBuilder<ButtonBuilder>().addComponents(
-			addAllButton,
-			newOnlyButton,
-			cancelButton,
-		);
-	}
-
 	/**
 	 * Wait for user button interaction and return the choice
 	 */
@@ -45,7 +17,7 @@ export class PlaylistInteractionUtils {
 		try {
 			const response = await interaction.followUp({
 				content: '🤔 **What would you like to do:**',
-				components: [this.createDuplicateButtons()],
+				components: [DuplicateControlsComponent.create()],
 				ephemeral: false, // Make it visible to everyone so it can be deleted
 			});
 
@@ -122,9 +94,8 @@ export class PlaylistInteractionUtils {
 		action: PlaylistDuplicateAction,
 		resolve: (value: PlaylistDuplicateAction) => void,
 	): Promise<void> {
-		const disabledButtons = this.createDuplicateButtons();
-		disabledButtons.components.forEach((button) => {
-			button.setDisabled(true);
+		const disabledButtons = DuplicateControlsComponent.create({
+			disabled: true,
 		});
 
 		try {
