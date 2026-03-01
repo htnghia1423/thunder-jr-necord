@@ -79,7 +79,7 @@ export class AudioControlService {
 				}
 
 				try {
-					distube.setVolume(guildId, volume);
+					queue.setVolume(volume);
 					resolve({
 						success: true,
 						message: `🔊 Volume set to ${volume}%`,
