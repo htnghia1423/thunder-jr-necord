@@ -1,3 +1,4 @@
+import type { ServerStatsData, UserStatsData } from '../dto/stats.dto';
 import { ExtendedSong } from '../interfaces/distube-types.interface';
 import { MusicConstants } from '../music.constants';
 import { EmbedBuilder } from 'discord.js';
@@ -394,5 +395,114 @@ export class EmbedBuilderUtils {
 				`Playlist **${playlistName}** has been deleted successfully.`,
 			)
 			.setTimestamp();
+	}
+
+	/**
+	 * Create an embed displaying server-wide music statistics
+	 * @param stats - Server statistics data with top songs and DJs
+	 * @returns EmbedBuilder configured for server stats display
+	 */
+	static createServerStatsEmbed(stats: ServerStatsData): EmbedBuilder {
+		const embed = new EmbedBuilder()
+			.setColor(MusicConstants.COLOR_INFO)
+			.setTitle('📊 Server Music Statistics')
+			.setTimestamp();
+
+		// Add total plays field
+		embed.addFields({
+			name: '🎵 Total Plays',
+			value: `${stats.totalPlays.toLocaleString()} song${stats.totalPlays === 1 ? '' : 's'} played`,
+			inline: false,
+		});
+
+		// Add top songs field
+		if (stats.topSongs.length > 0) {
+			let topSongsText = '';
+			stats.topSongs.forEach((song, index) => {
+				const medal =
+					index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🎵';
+				topSongsText += `${medal} **${index + 1}.** [${song.songTitle}](${song.songUrl}) — ${song.playCount} play${song.playCount === 1 ? '' : 's'}\n`;
+			});
+
+			embed.addFields({
+				name: '🎶 Top Songs',
+				value: topSongsText || 'No data available',
+				inline: false,
+			});
+		}
+
+		// Add top DJs field
+		if (stats.topDJs.length > 0) {
+			let topDJsText = '';
+			stats.topDJs.forEach((dj, index) => {
+				const medal =
+					index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🎧';
+				topDJsText += `${medal} **${index + 1}.** ${dj.username} — ${dj.playCount} play${dj.playCount === 1 ? '' : 's'}\n`;
+			});
+
+			embed.addFields({
+				name: '🎧 Top DJs',
+				value: topDJsText || 'No data available',
+				inline: false,
+			});
+		}
+
+		embed.setFooter({
+			text: 'Keep listening to climb the ranks!',
+		});
+
+		return embed;
+	}
+
+	/**
+	 * Create an embed displaying user-specific music statistics
+	 * @param stats - User statistics data with personal top songs and rank
+	 * @param username - Discord username of the user
+	 * @returns EmbedBuilder configured for user stats display
+	 */
+	static createUserStatsEmbed(
+		stats: UserStatsData,
+		username: string,
+	): EmbedBuilder {
+		const embed = new EmbedBuilder()
+			.setColor(MusicConstants.COLOR_INFO)
+			.setTitle(`📊 ${username}'s Music Statistics`)
+			.setTimestamp();
+
+		// Add total plays and rank fields
+		embed.addFields(
+			{
+				name: '🎵 Total Plays',
+				value: `${stats.totalPlays.toLocaleString()} song${stats.totalPlays === 1 ? '' : 's'}`,
+				inline: true,
+			},
+			{
+				name: '🏆 Server Rank',
+				value: stats.rank ? `#${stats.rank}` : 'N/A',
+				inline: true,
+			},
+		);
+
+		// Add top songs field
+		if (stats.topSongs.length > 0) {
+			let topSongsText = '';
+			stats.topSongs.forEach((song, index) => {
+				const medal =
+					index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🎵';
+				topSongsText += `${medal} **${index + 1}.** [${song.songTitle}](${song.songUrl}) — ${song.playCount} play${song.playCount === 1 ? '' : 's'}\n`;
+			});
+
+			embed.addFields({
+				name: '🎶 Your Top Songs',
+				value: topSongsText || 'No data available',
+				inline: false,
+			});
+		}
+
+		embed.setFooter({
+			text: 'Keep discovering new music!',
+		});
+
+		return embed;
 	}
 }

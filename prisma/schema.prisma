@@ -51,3 +51,19 @@ model Song {
   @@index([playlistId])
   @@map("songs")
 }
+
+// MusicHistory model - tracks song plays per guild for statistics
+model MusicHistory {
+  id        Int      @id @default(autoincrement())
+  guildId   String
+  userId    String
+  songTitle String
+  songUrl   String
+  playedAt  DateTime @default(now())
+
+  @@index([guildId])
+  @@index([userId])
+  @@index([playedAt])
+  @@index([guildId, songUrl])
+  @@map("music_history")
+}

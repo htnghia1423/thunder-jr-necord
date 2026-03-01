@@ -21,6 +21,8 @@ import {
 } from 'discord.js';
 import { DisTube, Events, Playlist, Queue, Song } from 'distube';
 
+import { MusicStatsService } from './music-stats.service';
+
 /**
  * DisTubeService manages the DisTube instance and handles infrastructure concerns
  * Separated from business logic for better maintainability
@@ -30,7 +32,10 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 	private readonly logger = new Logger(DisTubeService.name);
 	private distube: DisTube;
 
-	constructor(private readonly client: Client) {}
+	constructor(
+		private readonly client: Client,
+		private readonly musicStatsService: MusicStatsService,
+	) {}
 
 	onModuleInit() {
 		this.initializeDistube();
@@ -143,9 +148,20 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 	}
 
 	private setupEventHandlers(): void {
-		// When a song starts playing - just log, don't send message
+		// When a song starts playing - log and record stats
 		this.distube.on(Events.PLAY_SONG, (queue: Queue, song: Song) => {
 			this.logger.log(`Now playing: ${song.name} in guild ${queue.id}`);
+
+			// Record play statistics (fire and forget)
+			// Use user who requested the song, fallback to first member if not available
+			const userId = song.user?.id || song.member?.id;
+			if (userId && queue.id) {
+				void this.musicStatsService
+					.recordPlay(queue.id, userId, song)
+					.catch((error) => {
+						this.logger.error('Failed to record play statistics:', error);
+					});
+			}
 		});
 
 		// When a song is added to queue - just log, don't send message

@@ -9,11 +9,13 @@ import { QueueCommand } from './commands/queue.command';
 import { RemoveCommand } from './commands/remove.command';
 import { ShuffleCommand } from './commands/shuffle.command';
 import { SkipCommand } from './commands/skip.command';
+import { StatsCommand } from './commands/stats.command';
 import { StopCommand } from './commands/stop.command';
 import { VolumeCommand } from './commands/volume.command';
 // Services
 import { AudioControlService } from './services/audio-control.service';
 import { DisTubeService } from './services/distube.service';
+import { MusicStatsService } from './services/music-stats.service';
 import { MusicService } from './services/music.service';
 import { PlayMusicService } from './services/play-music.service';
 import { PlayResultFormatterService } from './services/play-result-formatter.service';
@@ -41,6 +43,7 @@ import { YoutubeApiService } from './services/youtube-api.service';
 		PlaylistDuplicateService,
 		PlaylistOptimizationService,
 		PlaylistStorageService,
+		MusicStatsService,
 		PlayResultFormatterService,
 		YoutubeApiService,
 		PlayMusicService,
@@ -57,6 +60,7 @@ import { YoutubeApiService } from './services/youtube-api.service';
 		LoopCommand,
 		ShuffleCommand,
 		PlaylistCommand,
+		StatsCommand,
 	],
 	exports: [MusicService, DisTubeService], // Make services available across the app
 })
