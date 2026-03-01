@@ -1,3 +1,4 @@
+import { MusicConstants } from '../music.constants';
 import { SoundCloudPlugin } from '@distube/soundcloud';
 import { SpotifyPlugin } from '@distube/spotify';
 import { YtDlpPlugin } from '@distube/yt-dlp';
@@ -198,7 +199,7 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 						`Users rejoined voice channel in guild ${queue.id}, staying connected`,
 					);
 				}
-			}, 60000); // 60 seconds
+			}, MusicConstants.EMPTY_CHANNEL_TIMEOUT);
 		});
 
 		this.logger.log('DisTube event handlers setup completed');

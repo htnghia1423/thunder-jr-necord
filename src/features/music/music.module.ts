@@ -15,7 +15,9 @@ import { AudioControlService } from './services/audio-control.service';
 import { DisTubeService } from './services/distube.service';
 import { MusicService } from './services/music.service';
 import { PlayMusicService } from './services/play-music.service';
+import { PlayResultFormatterService } from './services/play-result-formatter.service';
 import { PlaylistDuplicateService } from './services/playlist-duplicate.service';
+import { PlaylistOptimizationService } from './services/playlist-optimization.service';
 import { QueueManagementService } from './services/queue-management.service';
 import { YoutubeApiService } from './services/youtube-api.service';
 
@@ -35,6 +37,8 @@ import { YoutubeApiService } from './services/youtube-api.service';
 		AudioControlService,
 		QueueManagementService,
 		PlaylistDuplicateService,
+		PlaylistOptimizationService,
+		PlayResultFormatterService,
 		YoutubeApiService,
 		PlayMusicService,
 		MusicService,

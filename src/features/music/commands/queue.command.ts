@@ -1,4 +1,5 @@
 import { MUSIC_COMMAND_METADATA } from '../../utility/constants/command-metadata';
+import { MusicConstants } from '../music.constants';
 import { MusicService } from '../services/music.service';
 import { EmbedBuilderUtils } from '../utils/embed-builder.utils';
 import { Injectable } from '@nestjs/common';
@@ -13,7 +14,7 @@ import type { SlashCommandContext } from 'necord';
 
 @Injectable()
 export class QueueCommand {
-	private static readonly SONGS_PER_PAGE = 10;
+	private static readonly SONGS_PER_PAGE = MusicConstants.SONGS_PER_PAGE;
 
 	constructor(private readonly musicService: MusicService) {}
 
@@ -84,7 +85,7 @@ export class QueueCommand {
 		// Create collector for button interactions
 		const collector = message.createMessageComponentCollector({
 			componentType: ComponentType.Button,
-			time: 300000, // 5 minutes
+			time: MusicConstants.BUTTON_COLLECTOR_TIMEOUT,
 		});
 
 		collector.on('collect', (buttonInteraction) => {

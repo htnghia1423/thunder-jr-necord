@@ -1,20 +1,18 @@
 import { MusicResponse } from '../enums/music.enum';
 import {
-	DuplicateCheckResult,
 	ExtendedQueue,
 	ExtendedSong,
-	toSong,
-	toSongArray,
 } from '../interfaces/distube-types.interface';
 import { PlayResult } from '../interfaces/music.interface';
-import { DuplicateUtils } from '../utils/duplicate.utils';
 import { MusicValidationUtils } from '../utils/music-validation.utils';
 import { Injectable, Logger } from '@nestjs/common';
 import { ChatInputCommandInteraction, VoiceBasedChannel } from 'discord.js';
 import { Song } from 'distube';
 
 import { DisTubeService } from './distube.service';
+import { PlayResultFormatterService } from './play-result-formatter.service';
 import { PlaylistDuplicateService } from './playlist-duplicate.service';
+import { PlaylistOptimizationService } from './playlist-optimization.service';
 import { YoutubeApiService } from './youtube-api.service';
 
 interface PlayExecutionContext {
@@ -36,6 +34,8 @@ export class PlayMusicService {
 		private readonly distubeService: DisTubeService,
 		private readonly playlistDuplicateService: PlaylistDuplicateService,
 		private readonly youtubeApiService: YoutubeApiService,
+		private readonly playlistOptimizationService: PlaylistOptimizationService,
+		private readonly playResultFormatterService: PlayResultFormatterService,
 	) {}
 
 	/**
@@ -135,7 +135,8 @@ export class PlayMusicService {
 		// YouTube API playlist optimization
 		// Only use API for standard playlists (PL*, UU*, FL*, etc.)
 		// Exclude YouTube Mixes (RD*) as they're not supported by the API
-		const isYouTubePlaylist = this.isYouTubeStandardPlaylist(query);
+		const isYouTubePlaylist =
+			this.playlistOptimizationService.isYouTubeStandardPlaylist(query);
 
 		if (isYouTubePlaylist) {
 			const handled = await this.handleYouTubePlaylist(context);
@@ -148,7 +149,7 @@ export class PlayMusicService {
 		// YouTube Mixes (RD*) should play as single songs for instant playback
 		let cleanedQuery = query;
 		if (query.includes('youtube.com') && query.includes('list=')) {
-			cleanedQuery = this.stripMixParameters(query);
+			cleanedQuery = this.playlistOptimizationService.stripMixParameters(query);
 			this.logger.log(
 				'Stripped Mix/playlist parameters from URL for instant playback',
 			);
@@ -162,67 +163,6 @@ export class PlayMusicService {
 
 		// Fallback to original behavior (yt-dlp)
 		this.handleSingleSongOrFallback(fallbackContext);
-	}
-
-	/**
-	 * Check if query is a YouTube standard playlist (not a Mix)
-	 * Standard playlists: PL*, UU*, FL*, LL*, etc.
-	 * Mixes (not supported): RD*, RDMM*, RDAO*, RDCLAK*, etc.
-	 */
-	private isYouTubeStandardPlaylist(query: string): boolean {
-		if (!query.includes('youtube.com') || !query.includes('list=')) {
-			return false;
-		}
-
-		try {
-			const urlParams = new URLSearchParams(query.split('?')[1]);
-			const playlistId = urlParams.get('list');
-
-			if (!playlistId) {
-				return false;
-			}
-
-			// Exclude YouTube Mixes (they start with 'RD')
-			// This prevents hanging on API calls that don't support Mixes
-			if (playlistId.startsWith('RD')) {
-				this.logger.log(
-					`Detected YouTube Mix (${playlistId}), skipping API optimization`,
-				);
-				return false;
-			}
-
-			// Accept all other playlist types
-			return true;
-		} catch {
-			this.logger.warn(`Failed to parse playlist URL: ${query}`);
-			return false;
-		}
-	}
-
-	/**
-	 * Strip Mix and playlist parameters from YouTube URL
-	 * Converts: https://www.youtube.com/watch?v=VIDEO_ID&list=RDXXX&start_radio=1
-	 * To:       https://www.youtube.com/watch?v=VIDEO_ID
-	 * This forces DisTube to treat it as a single song for instant playback
-	 */
-	private stripMixParameters(url: string): string {
-		try {
-			const urlObj = new URL(url);
-
-			// Keep only the video ID parameter
-			const videoId = urlObj.searchParams.get('v');
-
-			if (!videoId) {
-				this.logger.warn('No video ID found in URL, returning original');
-				return url;
-			}
-
-			// Reconstruct URL with only video ID
-			return `https://www.youtube.com/watch?v=${videoId}`;
-		} catch (error) {
-			this.logger.error(`Failed to parse URL: ${url}`, error);
-			return url; // Return original on error
-		}
 	}
 
 	/**
@@ -442,17 +382,18 @@ export class PlayMusicService {
 		}
 
 		// Handle single song duplicates
-		const duplicateWarning = this.getSingleSongDuplicateWarning(
-			isPlaylist,
-			wasQueueEmpty,
-			finalQueue,
-			originalQueueLength,
-			currentSong,
-		);
+		const duplicateWarning =
+			this.playResultFormatterService.getSingleSongDuplicateWarning(
+				isPlaylist,
+				wasQueueEmpty,
+				finalQueue,
+				originalQueueLength,
+				currentSong,
+			);
 
 		// Return successful result
 		resolve(
-			this.createSuccessResult(
+			this.playResultFormatterService.createSuccessResult(
 				currentSong,
 				wasQueueEmpty,
 				isPlaylist,
@@ -464,60 +405,7 @@ export class PlayMusicService {
 	}
 
 	/**
-	 * Get duplicate warning for single songs
-	 */
-	private getSingleSongDuplicateWarning(
-		isPlaylist: boolean,
-		wasQueueEmpty: boolean,
-		finalQueue: ExtendedQueue | null,
-		originalQueueLength: number,
-		currentSong: ExtendedSong | undefined,
-	): string {
-		if (isPlaylist) {
-			return '';
-		}
-
-		const songsToCheck = wasQueueEmpty
-			? []
-			: finalQueue?.songs.slice(0, originalQueueLength) || [];
-
-		if (songsToCheck.length === 0 || !currentSong) {
-			return '';
-		}
-
-		const duplicateCheck = DuplicateUtils.checkDuplicate(
-			toSong(currentSong),
-			toSongArray(songsToCheck),
-		) as DuplicateCheckResult;
-
-		if (this.isDuplicateCheckValid(duplicateCheck, currentSong)) {
-			return `\n\n${DuplicateUtils.generateDuplicateWarning(
-				currentSong.name,
-				duplicateCheck.position!,
-				duplicateCheck.matchType!,
-			)}`;
-		}
-
-		return '';
-	}
-
-	/**
-	 * Check if duplicate check result is valid
-	 */
-	private isDuplicateCheckValid(
-		duplicateCheck: DuplicateCheckResult,
-		currentSong: ExtendedSong | undefined,
-	): boolean {
-		return Boolean(
-			duplicateCheck.isDuplicate &&
-				currentSong?.name &&
-				duplicateCheck.position &&
-				duplicateCheck.matchType,
-		);
-	}
-
-	/**
-	 * Create success result object
+	 * Create success result object (public for PlaylistDuplicateService)
 	 */
 	createSuccessResult(
 		currentSong: ExtendedSong | undefined,
@@ -527,19 +415,13 @@ export class PlayMusicService {
 		originalQueueLength: number,
 		duplicateWarning: string,
 	): PlayResult {
-		return {
-			success: true,
-			message: MusicResponse.SONG_ADDED,
-			data: {
-				songName: currentSong?.name,
-				duration: currentSong?.formattedDuration,
-				isNowPlaying: wasQueueEmpty,
-				wasQueueEmpty,
-				isPlaylist,
-				songsAdded,
-				queuePosition: wasQueueEmpty ? 0 : originalQueueLength - 1,
-				duplicateWarning,
-			},
-		};
+		return this.playResultFormatterService.createSuccessResult(
+			currentSong,
+			wasQueueEmpty,
+			isPlaylist,
+			songsAdded,
+			originalQueueLength,
+			duplicateWarning,
+		);
 	}
 }

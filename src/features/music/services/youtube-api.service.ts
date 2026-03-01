@@ -1,3 +1,4 @@
+import { MusicConstants } from '../music.constants';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
@@ -92,8 +93,12 @@ export class YoutubeApiService {
 
 		// Chunk into batches of 50
 		const chunks: string[][] = [];
-		for (let i = 0; i < videoIds.length; i += 50) {
-			chunks.push(videoIds.slice(i, i + 50));
+		for (
+			let i = 0;
+			i < videoIds.length;
+			i += MusicConstants.YOUTUBE_API_BATCH_SIZE
+		) {
+			chunks.push(videoIds.slice(i, i + MusicConstants.YOUTUBE_API_BATCH_SIZE));
 		}
 
 		this.logger.log(
@@ -160,7 +165,7 @@ export class YoutubeApiService {
 			while (true) {
 				const params: Record<string, string> = {
 					part: 'snippet',
-					maxResults: '50',
+					maxResults: String(MusicConstants.YOUTUBE_API_BATCH_SIZE),
 					playlistId,
 					key: apiKey,
 				};

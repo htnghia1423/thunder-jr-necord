@@ -1,4 +1,5 @@
 import { ExtendedSong } from '../interfaces/distube-types.interface';
+import { MusicConstants } from '../music.constants';
 import { EmbedBuilder } from 'discord.js';
 
 /**
@@ -28,7 +29,7 @@ export class EmbedBuilderUtils {
 	static createPlayEmbed(song: ExtendedSong, position?: number): EmbedBuilder {
 		const isNowPlaying = !position || position === 1;
 		const embed = new EmbedBuilder()
-			.setColor(0x00ff00) // Green for success
+			.setColor(MusicConstants.COLOR_SUCCESS)
 			.setTitle(isNowPlaying ? '🎵 Now Playing' : '🎵 Added to Queue')
 			.setDescription(`[${song.name || 'Unknown Song'}](${song.url || ''})`)
 			.setTimestamp();
@@ -41,7 +42,7 @@ export class EmbedBuilderUtils {
 		// Add uploader field
 		embed.addFields({
 			name: '👤 Uploader',
-			value: song.uploader?.name || 'Unknown',
+			value: song.uploader?.name || MusicConstants.DEFAULT_UPLOADER_NAME,
 			inline: true,
 		});
 
@@ -84,7 +85,7 @@ export class EmbedBuilderUtils {
 		}
 
 		const embed = new EmbedBuilder()
-			.setColor(0x0099ff) // Blue
+			.setColor(MusicConstants.COLOR_INFO)
 			.setTitle('🎶 Now Playing')
 			.setDescription(
 				`[${currentSong.name || 'Unknown Song'}](${currentSong.url || ''})`,
@@ -99,7 +100,7 @@ export class EmbedBuilderUtils {
 		// Add uploader field
 		embed.addFields({
 			name: '👤 Uploader',
-			value: currentSong.uploader?.name || 'Unknown',
+			value: currentSong.uploader?.name || MusicConstants.DEFAULT_UPLOADER_NAME,
 			inline: true,
 		});
 
@@ -167,7 +168,7 @@ export class EmbedBuilderUtils {
 		totalPages: number,
 	): EmbedBuilder {
 		const embed = new EmbedBuilder()
-			.setColor(0x9b59b6) // Purple
+			.setColor(MusicConstants.COLOR_QUEUE)
 			.setTitle(`🎵 Music Queue - Page ${page}/${totalPages}`)
 			.setTimestamp();
 
@@ -250,7 +251,7 @@ export class EmbedBuilderUtils {
 	 */
 	static createErrorEmbed(errorMessage: string): EmbedBuilder {
 		return new EmbedBuilder()
-			.setColor(0xff0000) // Red for errors
+			.setColor(MusicConstants.COLOR_ERROR)
 			.setTitle('❌ Error')
 			.setDescription(errorMessage)
 			.setTimestamp();
@@ -266,11 +267,11 @@ export class EmbedBuilderUtils {
 	static createProgressBar(
 		current: number,
 		total: number,
-		length: number = 20,
+		length: number = MusicConstants.PROGRESS_BAR_LENGTH,
 	): string {
 		// Handle edge cases
 		if (!total || total <= 0 || !current || current < 0) {
-			return `[${'░'.repeat(length)}] 0%`;
+			return `[${MusicConstants.PROGRESS_BAR_EMPTY_CHAR.repeat(length)}] ${MusicConstants.DEFAULT_PROGRESS_PERCENTAGE}%`;
 		}
 
 		// Calculate percentage and filled characters
@@ -279,7 +280,7 @@ export class EmbedBuilderUtils {
 		const empty = length - filled;
 
 		// Build progress bar
-		const progressBar = `[${'█'.repeat(filled)}${'░'.repeat(empty)}]`;
+		const progressBar = `[${MusicConstants.PROGRESS_BAR_FILLED_CHAR.repeat(filled)}${MusicConstants.PROGRESS_BAR_EMPTY_CHAR.repeat(empty)}]`;
 		return `${progressBar} ${Math.floor(percentage)}%`;
 	}
 }

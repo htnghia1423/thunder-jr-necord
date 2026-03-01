@@ -9,6 +9,7 @@ import {
 	toSongArray,
 } from '../interfaces/distube-types.interface';
 import { PlayResult } from '../interfaces/music.interface';
+import { MusicConstants } from '../music.constants';
 import { DuplicateUtils } from '../utils/duplicate.utils';
 import { PlaylistInteractionUtils } from '../utils/playlist-interaction.utils';
 import { Injectable, Logger } from '@nestjs/common';
@@ -57,11 +58,10 @@ export class PlaylistDuplicateService {
 			toSongArray(originalQueueSongs),
 		) as DuplicateAnalysisResult;
 
-		const duplicateThreshold = 0.1;
 		const hasSignificantDuplicates =
 			duplicateAnalysis.duplicateCount > 0 &&
 			duplicateAnalysis.duplicateCount / duplicateAnalysis.totalSongs >
-				duplicateThreshold;
+				MusicConstants.DUPLICATE_THRESHOLD;
 
 		if (hasSignificantDuplicates) {
 			await this.handleSignificantPlaylistDuplicates({
