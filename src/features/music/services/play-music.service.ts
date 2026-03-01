@@ -116,7 +116,7 @@ export class PlayMusicService {
 		resolve: (result: PlayResult) => void,
 	): Promise<void> {
 		const distube = this.distubeService.getDistube();
-		const existingQueue = distube.getQueue(guildId) as ExtendedQueue | null;
+		const existingQueue = distube.getQueue(guildId);
 		const wasQueueEmpty = !existingQueue || existingQueue.songs.length === 0;
 		const originalQueueLength = existingQueue?.songs.length || 0;
 
@@ -128,7 +128,7 @@ export class PlayMusicService {
 			query,
 			wasQueueEmpty,
 			originalQueueLength,
-			existingQueue,
+			existingQueue: (existingQueue as unknown as ExtendedQueue) ?? null,
 			resolve,
 		};
 
@@ -336,7 +336,7 @@ export class PlayMusicService {
 		resolve: (result: PlayResult) => void,
 	): Promise<void> {
 		const distube = this.distubeService.getDistube();
-		const finalQueue = distube.getQueue(guildId) as ExtendedQueue | null;
+		const finalQueue = distube.getQueue(guildId);
 		const currentSong = finalQueue?.songs[0];
 		const totalSongs = finalQueue?.songs.length || 0;
 		const songsAdded = totalSongs - (wasQueueEmpty ? 0 : originalQueueLength);
@@ -367,10 +367,10 @@ export class PlayMusicService {
 			await this.playlistDuplicateService.processPlaylistDuplicates(
 				{
 					interaction,
-					finalQueue,
+					finalQueue: (finalQueue as unknown as ExtendedQueue) ?? null,
 					songsAdded,
 					originalQueueLength,
-					currentSong,
+					currentSong: currentSong as unknown as ExtendedSong,
 					wasQueueEmpty,
 					isPlaylist,
 					existingQueue,
@@ -386,15 +386,15 @@ export class PlayMusicService {
 			this.playResultFormatterService.getSingleSongDuplicateWarning(
 				isPlaylist,
 				wasQueueEmpty,
-				finalQueue,
+				(finalQueue as unknown as ExtendedQueue) ?? null,
 				originalQueueLength,
-				currentSong,
+				currentSong as unknown as ExtendedSong,
 			);
 
 		// Return successful result
 		resolve(
 			this.playResultFormatterService.createSuccessResult(
-				currentSong,
+				currentSong as unknown as ExtendedSong | undefined,
 				wasQueueEmpty,
 				isPlaylist,
 				songsAdded,

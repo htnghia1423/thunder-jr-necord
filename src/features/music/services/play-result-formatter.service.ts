@@ -82,29 +82,19 @@ export class PlayResultFormatterService {
 			toSongArray(songsToCheck),
 		) as DuplicateCheckResult;
 
-		if (this.isDuplicateCheckValid(duplicateCheck, currentSong)) {
+		if (
+			duplicateCheck.isDuplicate &&
+			currentSong?.name &&
+			duplicateCheck.position &&
+			duplicateCheck.matchType
+		) {
 			return `\n\n${DuplicateUtils.generateDuplicateWarning(
 				currentSong.name,
-				duplicateCheck.position!,
-				duplicateCheck.matchType!,
+				duplicateCheck.position,
+				duplicateCheck.matchType,
 			)}`;
 		}
 
 		return '';
-	}
-
-	/**
-	 * Check if duplicate check result is valid
-	 */
-	private isDuplicateCheckValid(
-		duplicateCheck: DuplicateCheckResult,
-		currentSong: ExtendedSong | undefined,
-	): boolean {
-		return Boolean(
-			duplicateCheck.isDuplicate &&
-				currentSong?.name &&
-				duplicateCheck.position &&
-				duplicateCheck.matchType,
-		);
 	}
 }

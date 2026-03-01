@@ -42,7 +42,7 @@ export class MusicService {
 		}
 
 		const distube = this.distubeService.getDistube();
-		const queue = distube.getQueue(guildId) as ExtendedQueue | null;
+		const queue = distube.getQueue(guildId);
 
 		if (!queue) {
 			return {
@@ -53,7 +53,7 @@ export class MusicService {
 
 		return {
 			success: true,
-			queue,
+			queue: queue as unknown as ExtendedQueue,
 		};
 	}
 

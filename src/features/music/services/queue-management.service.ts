@@ -157,7 +157,7 @@ export class QueueManagementService {
 				}
 
 				const distube = this.distubeService.getDistube();
-				const queue = distube.getQueue(guild) as ExtendedQueue | null;
+				const queue = distube.getQueue(guild);
 
 				if (!queue) {
 					resolve({
@@ -237,7 +237,7 @@ export class QueueManagementService {
 				}
 
 				const distube = this.distubeService.getDistube();
-				const queue = distube.getQueue(guild) as ExtendedQueue | null;
+				const queue = distube.getQueue(guild);
 
 				if (!queue) {
 					resolve({
@@ -318,7 +318,7 @@ export class QueueManagementService {
 				}
 
 				const distube = this.distubeService.getDistube();
-				const queue = distube.getQueue(guild) as ExtendedQueue | null;
+				const queue = distube.getQueue(guild);
 
 				if (!queue?.songs?.length) {
 					resolve({
@@ -342,7 +342,7 @@ export class QueueManagementService {
 						});
 						return;
 					}
-					songToRemove = queue.songs[removeIndex];
+					songToRemove = queue.songs[removeIndex] as ExtendedSong;
 					// method remains 'position' (default value)
 				} else if (options.songName) {
 					// Remove by name (fuzzy search)
@@ -353,7 +353,7 @@ export class QueueManagementService {
 							song.name?.toLowerCase().includes(searchTerm) ||
 							song.uploader?.name?.toLowerCase().includes(searchTerm)
 						) {
-							songToRemove = song;
+							songToRemove = song as ExtendedSong;
 							removeIndex = i;
 							method = 'name';
 							break;

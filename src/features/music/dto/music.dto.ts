@@ -9,7 +9,7 @@ export class PlayDto {
 		description: 'YouTube URL or search keywords',
 		required: true,
 	})
-	song: string;
+	song!: string;
 }
 
 /**
@@ -23,7 +23,7 @@ export class VolumeDto {
 		min_value: 1,
 		max_value: 100,
 	})
-	level: number;
+	level!: number;
 }
 
 /**
@@ -73,5 +73,5 @@ export class SeekDto {
 		required: true,
 		min_value: 0,
 	})
-	seconds: number;
+	seconds!: number;
 }

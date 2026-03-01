@@ -4,7 +4,6 @@ import {
 	PlaylistSaveDto,
 } from '../dto/playlist.dto';
 import { MusicResponse } from '../enums/music.enum';
-import type { ExtendedQueue } from '../interfaces/distube-types.interface';
 import { DisTubeService } from '../services/distube.service';
 import { MusicService } from '../services/music.service';
 import { PlaylistStorageService } from '../services/playlist-storage.service';
@@ -12,8 +11,19 @@ import { EmbedBuilderUtils } from '../utils/embed-builder.utils';
 import { MusicValidationUtils } from '../utils/music-validation.utils';
 import { Injectable, Logger } from '@nestjs/common';
 import type { SlashCommandContext } from 'necord';
-import { Context, Options, Subcommand } from 'necord';
+import {
+	Context,
+	Options,
+	Subcommand,
+	createCommandGroupDecorator,
+} from 'necord';
 
+export const PlaylistCommandDecorator = createCommandGroupDecorator({
+	name: 'playlist',
+	description: 'Manage your music playlists',
+});
+
+@PlaylistCommandDecorator()
 @Injectable()
 export class PlaylistCommand {
 	private readonly logger = new Logger(PlaylistCommand.name);
@@ -25,7 +35,7 @@ export class PlaylistCommand {
 	) {}
 
 	@Subcommand({
-		name: 'playlist save',
+		name: 'save',
 		description: 'Save the current queue as a playlist',
 	})
 	public async save(
@@ -54,7 +64,7 @@ export class PlaylistCommand {
 
 			// Get the current queue
 			const distube = this.distubeService.getDistube();
-			const queue = distube.getQueue(guildId) as ExtendedQueue | null;
+			const queue = distube.getQueue(guildId);
 
 			if (!queue || queue.songs.length === 0) {
 				const errorEmbed = EmbedBuilderUtils.createErrorEmbed(
@@ -104,7 +114,7 @@ export class PlaylistCommand {
 	}
 
 	@Subcommand({
-		name: 'playlist load',
+		name: 'load',
 		description: 'Load a saved playlist into the queue',
 	})
 	public async load(
@@ -178,7 +188,7 @@ export class PlaylistCommand {
 	}
 
 	@Subcommand({
-		name: 'playlist list',
+		name: 'list',
 		description: 'Show your saved playlists',
 	})
 	public async list(@Context() context: SlashCommandContext) {
@@ -222,7 +232,7 @@ export class PlaylistCommand {
 	}
 
 	@Subcommand({
-		name: 'playlist delete',
+		name: 'delete',
 		description: 'Delete a saved playlist',
 	})
 	public async delete(

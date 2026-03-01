@@ -2,7 +2,12 @@ import { MusicStatsService } from '../services/music-stats.service';
 import { EmbedBuilderUtils } from '../utils/embed-builder.utils';
 import { Injectable, Logger } from '@nestjs/common';
 import type { SlashCommandContext } from 'necord';
-import { Context, Subcommand } from 'necord';
+import { Context, Subcommand, createCommandGroupDecorator } from 'necord';
+
+export const StatsCommandDecorator = createCommandGroupDecorator({
+	name: 'stats',
+	description: 'Music playback statistics',
+});
 
 /**
  * Stats Command - Displays music playback statistics
@@ -10,6 +15,7 @@ import { Context, Subcommand } from 'necord';
  * - /stats server: Server-wide statistics (public)
  * - /stats me: Personal statistics (ephemeral/private)
  */
+@StatsCommandDecorator()
 @Injectable()
 export class StatsCommand {
 	private readonly logger = new Logger(StatsCommand.name);
@@ -22,7 +28,7 @@ export class StatsCommand {
 	 * Response is public
 	 */
 	@Subcommand({
-		name: 'stats server',
+		name: 'server',
 		description: 'View server music statistics',
 	})
 	public async server(@Context() context: SlashCommandContext) {
@@ -90,7 +96,7 @@ export class StatsCommand {
 	 * Response is ephemeral (private)
 	 */
 	@Subcommand({
-		name: 'stats me',
+		name: 'me',
 		description: 'View your personal music statistics',
 	})
 	public async me(@Context() context: SlashCommandContext) {

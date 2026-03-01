@@ -30,7 +30,7 @@ import { MusicStatsService } from './music-stats.service';
 @Injectable()
 export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 	private readonly logger = new Logger(DisTubeService.name);
-	private distube: DisTube;
+	private distube!: DisTube;
 
 	constructor(
 		private readonly client: Client,
