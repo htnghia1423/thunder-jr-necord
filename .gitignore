@@ -143,3 +143,5 @@ youtube-cookies.json
 
 # Ignore YouTube player debug scripts
 *-player-script.js
+
+/generated/prisma

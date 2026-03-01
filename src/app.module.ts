@@ -7,6 +7,7 @@ import { NecordModule, NecordModuleOptions } from 'necord';
 import { BotGateway } from '@/bot.gateway';
 import { MusicModule } from '@/features/music/music.module';
 import { UtilityModule } from '@/features/utility/utility.module';
+import { PrismaModule } from '@/prisma/prisma.module';
 
 @Module({
 	imports: [
@@ -15,7 +16,10 @@ import { UtilityModule } from '@/features/utility/utility.module';
 			isGlobal: true, // Make the ConfigModule available everywhere
 		}),
 
-		// 2. Configure NecordModule to connect the bot
+		// 2. Global Prisma Database Module
+		PrismaModule,
+
+		// 3. Configure NecordModule to connect the bot
 		NecordModule.forRootAsync({
 			imports: [ConfigModule], // Import ConfigModule to use ConfigService
 			useFactory: (configService: ConfigService): NecordModuleOptions => {
@@ -39,11 +43,11 @@ import { UtilityModule } from '@/features/utility/utility.module';
 			inject: [ConfigService], // Inject ConfigService into the factory
 		}),
 
-		// 3. Import your feature modules
+		// 4. Import your feature modules
 		MusicModule,
 		UtilityModule,
 	],
-	// 4. Register the gateway to listen for events
+	// 5. Register the gateway to listen for events
 	providers: [BotGateway],
 })
 export class AppModule {}
