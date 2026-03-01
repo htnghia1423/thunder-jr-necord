@@ -1,6 +1,11 @@
 import { ExtendedSong } from '../interfaces/distube-types.interface';
 import { MusicConstants } from '../music.constants';
-import { EmbedBuilder } from 'discord.js';
+import {
+	ActionRowBuilder,
+	ButtonBuilder,
+	ButtonStyle,
+	EmbedBuilder,
+} from 'discord.js';
 
 /**
  * Queue-like interface that works with both Queue and ExtendedQueue
@@ -12,6 +17,8 @@ interface QueueLike {
 	formattedDuration?: string;
 	repeatMode?: number;
 	volume?: number;
+	paused?: boolean;
+	previousSongs?: ExtendedSong[] | any[];
 }
 
 /**
@@ -282,5 +289,53 @@ export class EmbedBuilderUtils {
 		// Build progress bar
 		const progressBar = `[${MusicConstants.PROGRESS_BAR_FILLED_CHAR.repeat(filled)}${MusicConstants.PROGRESS_BAR_EMPTY_CHAR.repeat(empty)}]`;
 		return `${progressBar} ${Math.floor(percentage)}%`;
+	}
+
+	/**
+	 * Create playback control buttons for the Now Playing message
+	 * @param queue - DisTube queue object
+	 * @returns ActionRow with 5 playback control buttons
+	 */
+	static createPlaybackButtons(
+		queue: QueueLike,
+	): ActionRowBuilder<ButtonBuilder> {
+		const isPaused = queue.paused || false;
+
+		return new ActionRowBuilder<ButtonBuilder>().addComponents(
+			// Previous button - disabled if no previous song
+			new ButtonBuilder()
+				.setCustomId('music_prev')
+				.setEmoji('⏮️')
+				.setStyle(ButtonStyle.Secondary)
+				.setDisabled(!queue.previousSongs || queue.previousSongs.length === 0),
+
+			// Play/Pause button - changes based on paused state
+			new ButtonBuilder()
+				.setCustomId('music_play_pause')
+				.setEmoji(isPaused ? '▶️' : '⏸️')
+				.setStyle(isPaused ? ButtonStyle.Success : ButtonStyle.Primary)
+				.setDisabled(false),
+
+			// Stop button
+			new ButtonBuilder()
+				.setCustomId('music_stop')
+				.setEmoji('⏹️')
+				.setStyle(ButtonStyle.Danger)
+				.setDisabled(false),
+
+			// Skip button - disabled if no next song
+			new ButtonBuilder()
+				.setCustomId('music_skip')
+				.setEmoji('⏭️')
+				.setStyle(ButtonStyle.Secondary)
+				.setDisabled(queue.songs.length <= 1),
+
+			// Loop button - changes based on repeat mode
+			new ButtonBuilder()
+				.setCustomId('music_loop')
+				.setEmoji('🔁')
+				.setStyle(ButtonStyle.Primary)
+				.setDisabled(false),
+		);
 	}
 }

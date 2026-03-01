@@ -21,6 +21,7 @@ export enum MusicResponse {
 
 	// Error messages
 	NOT_IN_VOICE_CHANNEL = '❌ You need to be in a voice channel to use this command!',
+	NOT_IN_SAME_VOICE_CHANNEL = '❌ You must be in the same voice channel as the bot to use these controls!',
 	BOT_NO_PERMISSIONS = "❌ I don't have Connect or Speak permissions in this voice channel!",
 	NO_QUEUE = '❌ No queue found!',
 	QUEUE_EMPTY = '❌ Queue is empty!',

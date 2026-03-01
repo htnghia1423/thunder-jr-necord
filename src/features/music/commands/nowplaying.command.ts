@@ -1,4 +1,5 @@
 import { MUSIC_COMMAND_METADATA } from '../../utility/constants/command-metadata';
+import { DisTubeService } from '../services/distube.service';
 import { MusicService } from '../services/music.service';
 import { EmbedBuilderUtils } from '../utils/embed-builder.utils';
 import { Injectable } from '@nestjs/common';
@@ -7,7 +8,10 @@ import type { SlashCommandContext } from 'necord';
 
 @Injectable()
 export class NowPlayingCommand {
-	constructor(private readonly musicService: MusicService) {}
+	constructor(
+		private readonly musicService: MusicService,
+		private readonly disTubeService: DisTubeService,
+	) {}
 
 	@SlashCommand({
 		name: MUSIC_COMMAND_METADATA.nowplaying.name,
@@ -31,8 +35,17 @@ export class NowPlayingCommand {
 
 		const { queue } = validation;
 
-		// Create and send embed
+		// Create embed and buttons
 		const embed = EmbedBuilderUtils.createNowPlayingEmbed(queue);
-		await interaction.editReply({ embeds: [embed] });
+		const buttons = EmbedBuilderUtils.createPlaybackButtons(queue);
+
+		// Send message with buttons
+		const message = await interaction.editReply({
+			embeds: [embed],
+			components: [buttons],
+		});
+
+		// Attach button collector
+		this.disTubeService.attachPlaybackControls(message, queue as any);
 	}
 }

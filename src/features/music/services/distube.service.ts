@@ -1,4 +1,6 @@
+import { MusicResponse } from '../enums/music.enum';
 import { MusicConstants } from '../music.constants';
+import { EmbedBuilderUtils } from '../utils/embed-builder.utils';
 import { SoundCloudPlugin } from '@distube/soundcloud';
 import { SpotifyPlugin } from '@distube/spotify';
 import { YtDlpPlugin } from '@distube/yt-dlp';
@@ -9,7 +11,16 @@ import {
 	OnModuleDestroy,
 	OnModuleInit,
 } from '@nestjs/common';
-import { Client, GuildMember } from 'discord.js';
+import {
+	ActionRowBuilder,
+	ButtonBuilder,
+	ButtonInteraction,
+	ButtonStyle,
+	Client,
+	ComponentType,
+	GuildMember,
+	Message,
+} from 'discord.js';
 import { DisTube, Events, Playlist, Queue, Song } from 'distube';
 
 /**
@@ -65,6 +76,69 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 			this.logger.log('DisTube cleanup completed successfully');
 		} catch (error) {
 			this.logger.error('Error during DisTube cleanup', error);
+		}
+	}
+
+	/**
+	 * Attach button collector to a Now Playing message
+	 */
+	public attachPlaybackControls(message: Message<boolean>, queue: Queue): void {
+		const collector = message.createMessageComponentCollector({
+			componentType: ComponentType.Button,
+			time: MusicConstants.BUTTON_COLLECTOR_TIMEOUT, // 5 minutes
+		});
+
+		collector.on('collect', (interaction: ButtonInteraction) => {
+			void this.handlePlaybackButtonInteraction(interaction, queue);
+		});
+
+		collector.on('end', () => {
+			void this.disableButtonsOnCollectorEnd(message);
+		});
+	}
+
+	/**
+	 * Disable all buttons when the collector ends
+	 */
+	private async disableButtonsOnCollectorEnd(
+		message: Message<boolean>,
+	): Promise<void> {
+		try {
+			// Disable all buttons when collector expires
+			const disabledButtons =
+				new ActionRowBuilder<ButtonBuilder>().addComponents(
+					new ButtonBuilder()
+						.setCustomId('music_prev')
+						.setEmoji('⏮️')
+						.setStyle(ButtonStyle.Secondary)
+						.setDisabled(true),
+					new ButtonBuilder()
+						.setCustomId('music_play_pause')
+						.setEmoji('⏸️')
+						.setStyle(ButtonStyle.Primary)
+						.setDisabled(true),
+					new ButtonBuilder()
+						.setCustomId('music_stop')
+						.setEmoji('⏹️')
+						.setStyle(ButtonStyle.Danger)
+						.setDisabled(true),
+					new ButtonBuilder()
+						.setCustomId('music_skip')
+						.setEmoji('⏭️')
+						.setStyle(ButtonStyle.Secondary)
+						.setDisabled(true),
+					new ButtonBuilder()
+						.setCustomId('music_loop')
+						.setEmoji('🔁')
+						.setStyle(ButtonStyle.Primary)
+						.setDisabled(true),
+				);
+
+			await message.edit({ components: [disabledButtons] }).catch(() => {
+				// Message might have been deleted
+			});
+		} catch (error) {
+			this.logger.error('Failed to disable buttons on collector end', error);
 		}
 	}
 
@@ -203,5 +277,123 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 		});
 
 		this.logger.log('DisTube event handlers setup completed');
+	}
+
+	/**
+	 * Handle playback button interactions (Previous, Play/Pause, Stop, Skip, Loop)
+	 */
+	private async handlePlaybackButtonInteraction(
+		interaction: ButtonInteraction,
+		queue: Queue,
+	): Promise<void> {
+		// Validate user is in the same voice channel as the bot
+		const member = interaction.guild?.members.cache.get(interaction.user.id);
+		const botVoiceChannel = queue.voiceChannel;
+		const userVoiceChannel = member?.voice.channel;
+
+		if (!userVoiceChannel || userVoiceChannel.id !== botVoiceChannel?.id) {
+			await interaction.reply({
+				content: MusicResponse.NOT_IN_SAME_VOICE_CHANNEL,
+				ephemeral: true,
+			});
+			return;
+		}
+
+		try {
+			switch (interaction.customId) {
+				case 'music_prev':
+					await this.distube.previous(queue);
+					await interaction.reply({
+						content: '⏮️ Playing previous song...',
+						ephemeral: true,
+					});
+					break;
+
+				case 'music_play_pause':
+					if (queue.paused) {
+						await this.distube.resume(queue);
+						await interaction.reply({
+							content: '▶️ Resumed playback',
+							ephemeral: true,
+						});
+					} else {
+						await this.distube.pause(queue);
+						await interaction.reply({
+							content: '⏸️ Paused playback',
+							ephemeral: true,
+						});
+					}
+					break;
+
+				case 'music_stop':
+					await this.distube.stop(queue);
+					await interaction.reply({
+						content: '⏹️ Stopped playback and cleared queue',
+						ephemeral: true,
+					});
+					break;
+
+				case 'music_skip':
+					await this.distube.skip(queue);
+					await interaction.reply({
+						content: '⏭️ Skipped to next song',
+						ephemeral: true,
+					});
+					break;
+
+				case 'music_loop': {
+					// Cycle through repeat modes: 0 (Off) -> 1 (Song) -> 2 (Queue) -> 0
+					const currentMode = queue.repeatMode;
+					const nextMode = (currentMode + 1) % 3;
+					this.distube.setRepeatMode(queue, nextMode);
+
+					const modeNames = ['Off', 'Song', 'Queue'];
+					await interaction.reply({
+						content: `🔁 Loop mode: ${modeNames[nextMode]}`,
+						ephemeral: true,
+					});
+					break;
+				}
+
+				default:
+					await interaction.reply({
+						content: '❌ Unknown button action',
+						ephemeral: true,
+					});
+			}
+
+			// Update the original message with new button states
+			await this.updateNowPlayingMessage(interaction, queue);
+		} catch (error) {
+			this.logger.error('Error handling playback button interaction', error);
+			await interaction
+				.reply({
+					content: '❌ Failed to execute playback action',
+					ephemeral: true,
+				})
+				.catch(() => {
+					// Interaction might have already been replied to
+				});
+		}
+	}
+
+	/**
+	 * Update the Now Playing message with current queue state
+	 */
+	private async updateNowPlayingMessage(
+		interaction: ButtonInteraction,
+		queue: Queue,
+	): Promise<void> {
+		try {
+			const embed = EmbedBuilderUtils.createNowPlayingEmbed(queue as any);
+			const buttons = EmbedBuilderUtils.createPlaybackButtons(queue as any);
+
+			await interaction.message.edit({
+				embeds: [embed],
+				components: [buttons],
+			});
+		} catch (error) {
+			this.logger.error('Failed to update Now Playing message', error);
+		}
 	}
 }
