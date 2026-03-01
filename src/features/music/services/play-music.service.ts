@@ -39,6 +39,35 @@ export class PlayMusicService {
 	) {}
 
 	/**
+	 * Parse DisTube error messages to provide specific user feedback
+	 */
+	private parseDistubeError(error: unknown): string {
+		const errorMessage =
+			error instanceof Error
+				? error.message.toLowerCase()
+				: String(error).toLowerCase();
+
+		if (errorMessage.includes('age') && errorMessage.includes('restrict')) {
+			return MusicResponse.PLAY_ERROR_AGE_RESTRICTED;
+		}
+		if (errorMessage.includes('private')) {
+			return MusicResponse.PLAY_ERROR_PRIVATE;
+		}
+		if (errorMessage.includes('region') || errorMessage.includes('country')) {
+			return MusicResponse.PLAY_ERROR_REGION_BLOCKED;
+		}
+		if (
+			errorMessage.includes('unavailable') ||
+			errorMessage.includes('not available')
+		) {
+			return MusicResponse.PLAY_ERROR_UNAVAILABLE;
+		}
+
+		// Default fallback
+		return MusicResponse.PLAY_ERROR;
+	}
+
+	/**
 	 * Play a song from URL or search query
 	 */
 	async play(
@@ -301,7 +330,7 @@ export class PlayMusicService {
 					this.logger.error('Error playing custom playlist', error);
 					resolve({
 						success: false,
-						message: MusicResponse.PLAY_ERROR,
+						message: this.parseDistubeError(error),
 					});
 				});
 
@@ -350,7 +379,7 @@ export class PlayMusicService {
 				this.logger.error('Error playing song', error);
 				resolve({
 					success: false,
-					message: MusicResponse.PLAY_ERROR,
+					message: this.parseDistubeError(error),
 				});
 			});
 	}

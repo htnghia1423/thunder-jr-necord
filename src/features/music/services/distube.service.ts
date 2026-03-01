@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { SoundCloudPlugin } from '@distube/soundcloud';
 import { SpotifyPlugin } from '@distube/spotify';
 import { YtDlpPlugin } from '@distube/yt-dlp';
@@ -11,8 +8,8 @@ import {
 	OnModuleDestroy,
 	OnModuleInit,
 } from '@nestjs/common';
-import { Client } from 'discord.js';
-import { DisTube } from 'distube';
+import { Client, GuildMember } from 'discord.js';
+import { DisTube, Events, Playlist, Queue, Song } from 'distube';
 
 /**
  * DisTubeService manages the DisTube instance and handles infrastructure concerns
@@ -99,31 +96,24 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 
 	private setupEventHandlers(): void {
 		// When a song starts playing - just log, don't send message
-		(this.distube as any).on('playSong', (queue: any, song: any) => {
+		this.distube.on(Events.PLAY_SONG, (queue: Queue, song: Song) => {
 			this.logger.log(`Now playing: ${song.name} in guild ${queue.id}`);
 		});
 
 		// When a song is added to queue - just log, don't send message
-		(this.distube as any).on('addSong', (queue: any, song: any) => {
+		this.distube.on(Events.ADD_SONG, (queue: Queue, song: Song) => {
 			this.logger.log(`Added to queue: ${song.name} in guild ${queue.id}`);
 		});
 
-		// When a playlist starts playing - just log, don't send message
-		(this.distube as any).on('playList', (queue: any, playlist: any) => {
-			this.logger.log(
-				`Now playing playlist: ${playlist.name} (${playlist.songs?.length} songs) in guild ${queue.id}`,
-			);
-		});
-
 		// When a playlist is added to queue - just log, don't send message
-		(this.distube as any).on('addList', (queue: any, playlist: any) => {
+		this.distube.on(Events.ADD_LIST, (queue: Queue, playlist: Playlist) => {
 			this.logger.log(
 				`Added playlist to queue: ${playlist.name} (${playlist.songs?.length} songs) in guild ${queue.id}`,
 			);
 		});
 
 		// When queue ends
-		(this.distube as any).on('finish', (queue: any) => {
+		this.distube.on(Events.FINISH, (queue: Queue) => {
 			this.logger.log(`Queue finished in guild ${queue.id}`);
 			const channel = queue.textChannel;
 			if (channel) {
@@ -134,13 +124,13 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 		});
 
 		// Handle errors - DisTube v5 signature: (error, queue, song)
-		// We only need error and queue, so we omit the song parameter
-		(this.distube as any).on('error', (error: Error, queue: any) => {
+		// We only use error and queue parameters
+		this.distube.on(Events.ERROR, (error: Error, queue: Queue) => {
 			this.logger.error('DisTube error:', error);
 			// Safely extract textChannel from queue object
 			const textChannel = queue?.textChannel;
 			if (textChannel) {
-				textChannel
+				void textChannel
 					.send(`❌ **Error:** ${error.message}`)
 					.catch((sendError: Error) => {
 						this.logger.error('Failed to send error message', sendError);
@@ -149,12 +139,12 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 		});
 
 		// Handle disconnect event - when bot is disconnected from voice channel
-		(this.distube as any).on('disconnect', (queue: any) => {
+		this.distube.on(Events.DISCONNECT, (queue: Queue) => {
 			this.logger.log(
 				`Bot disconnected from voice channel in guild ${queue.id}`,
 			);
 			try {
-				queue.stop();
+				void queue.stop();
 				this.logger.log(`Queue stopped and cleaned up for guild ${queue.id}`);
 			} catch (error) {
 				this.logger.error(
@@ -165,7 +155,8 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 		});
 
 		// Handle empty event - when voice channel becomes empty
-		(this.distube as any).on('empty', (queue: any) => {
+		// Note: EMPTY event exists but is not in DisTubeEvents type definition
+		this.distube.on(Events.EMPTY as any, (queue: Queue) => {
 			this.logger.log(
 				`Voice channel is empty in guild ${queue.id}, starting 60s timeout`,
 			);
@@ -184,7 +175,7 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 
 				// Count non-bot members in the channel
 				const memberCount = voiceChannel.members.filter(
-					(member: any) => !member.user.bot,
+					(member: GuildMember) => !member.user.bot,
 				).size;
 
 				if (memberCount === 0) {

@@ -104,6 +104,8 @@ export class DuplicateUtils {
 
 	/**
 	 * Check for duplicates in a playlist
+	 * Optimized using hash-based approach: O(M + N) instead of O(M × N)
+	 * Performance: 300 new songs × 300 queue = 600 iterations (was 90,000)
 	 */
 	static checkPlaylistDuplicates(
 		newSongs: Song[],
@@ -112,14 +114,56 @@ export class DuplicateUtils {
 		const duplicates: Array<DuplicateSongEntry> = [];
 		const uniqueSongs: Song[] = [];
 
-		for (const newSong of newSongs) {
-			const duplicateCheck = this.checkDuplicate(newSong, existingQueue);
+		// Build hash maps for O(1) lookup - O(N) complexity
+		const urlMap = new Map<string, number>();
+		const nameUploaderMap = new Map<string, number>();
 
-			if (duplicateCheck.isDuplicate) {
+		for (let i = 0; i < existingQueue.length; i++) {
+			const song = existingQueue[i];
+			const position = i + 1; // 1-based position for user display
+
+			// Index by URL
+			if (song.url) {
+				urlMap.set(song.url, position);
+			}
+
+			// Index by name + uploader combination
+			const nameKey = song.name?.toLowerCase().trim() || '';
+			const uploaderKey = song.uploader?.name?.toLowerCase().trim() || '';
+			if (nameKey && uploaderKey) {
+				const compositeKey = `${nameKey}|||${uploaderKey}`;
+				nameUploaderMap.set(compositeKey, position);
+			}
+		}
+
+		// Check each new song using hash lookups - O(M) complexity
+		for (const newSong of newSongs) {
+			const urlMatch = newSong.url ? urlMap.get(newSong.url) : undefined;
+
+			const nameKey = newSong.name?.toLowerCase().trim() || '';
+			const uploaderKey = newSong.uploader?.name?.toLowerCase().trim() || '';
+			const compositeKey = `${nameKey}|||${uploaderKey}`;
+			const nameMatch =
+				nameKey && uploaderKey ? nameUploaderMap.get(compositeKey) : undefined;
+
+			// Determine match type and position
+			if (urlMatch && nameMatch) {
 				duplicates.push({
 					song: newSong,
-					existingPosition: duplicateCheck.position!,
-					matchType: duplicateCheck.matchType!,
+					existingPosition: urlMatch,
+					matchType: 'both',
+				});
+			} else if (urlMatch) {
+				duplicates.push({
+					song: newSong,
+					existingPosition: urlMatch,
+					matchType: 'url',
+				});
+			} else if (nameMatch) {
+				duplicates.push({
+					song: newSong,
+					existingPosition: nameMatch,
+					matchType: 'name',
 				});
 			} else {
 				uniqueSongs.push(newSong);
