@@ -1,7 +1,7 @@
 import { PlaybackControlsComponent } from '../components/playback-controls.component';
 import { MusicResponse } from '../enums/music.enum';
 import { MusicConstants } from '../music.constants';
-import { EmbedBuilderUtils } from '../utils/embed-builder.utils';
+import { EmbedBuilderUtils, QueueLike } from '../utils/embed-builder.utils';
 import { SoundCloudPlugin } from '@distube/soundcloud';
 import { SpotifyPlugin } from '@distube/spotify';
 import { YtDlpPlugin } from '@distube/yt-dlp';
@@ -291,7 +291,7 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 		try {
 			switch (interaction.customId) {
 				case 'music_prev':
-					await this.distube.previous(queue);
+					await queue.previous();
 					await interaction.reply({
 						content: '⏮️ Playing previous song...',
 						ephemeral: true,
@@ -300,13 +300,13 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 
 				case 'music_play_pause':
 					if (queue.paused) {
-						await this.distube.resume(queue);
+						await queue.resume();
 						await interaction.reply({
 							content: '▶️ Resumed playback',
 							ephemeral: true,
 						});
 					} else {
-						await this.distube.pause(queue);
+						await queue.pause();
 						await interaction.reply({
 							content: '⏸️ Paused playback',
 							ephemeral: true,
@@ -315,7 +315,7 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 					break;
 
 				case 'music_stop':
-					await this.distube.stop(queue);
+					await queue.stop();
 					await interaction.reply({
 						content: '⏹️ Stopped playback and cleared queue',
 						ephemeral: true,
@@ -323,7 +323,7 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 					break;
 
 				case 'music_skip':
-					await this.distube.skip(queue);
+					await queue.skip();
 					await interaction.reply({
 						content: '⏭️ Skipped to next song',
 						ephemeral: true,
@@ -334,7 +334,7 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 					// Cycle through repeat modes: 0 (Off) -> 1 (Song) -> 2 (Queue) -> 0
 					const currentMode = queue.repeatMode;
 					const nextMode = (currentMode + 1) % 3;
-					this.distube.setRepeatMode(queue, nextMode);
+					queue.setRepeatMode(nextMode);
 
 					const modeNames = ['Off', 'Song', 'Queue'];
 					await interaction.reply({
@@ -374,7 +374,9 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 		queue: Queue,
 	): Promise<void> {
 		try {
-			const embed = EmbedBuilderUtils.createNowPlayingEmbed(queue as any);
+			const embed = EmbedBuilderUtils.createNowPlayingEmbed(
+				queue as unknown as QueueLike,
+			);
 			const buttons = PlaybackControlsComponent.create({
 				isPaused: queue.paused,
 				hasPreviousSongs: queue.previousSongs && queue.previousSongs.length > 0,

@@ -116,7 +116,7 @@ export class MusicValidationUtils {
 			};
 		}
 
-		const queue = distube.getQueue(guildId);
+		const queue = distube.getQueue(voiceChannel.guild);
 
 		if (!queue) {
 			return {
@@ -143,15 +143,15 @@ export class MusicValidationUtils {
 		interaction: ChatInputCommandInteraction,
 		distube: DisTube,
 	): { success: true; queue: Queue } | { success: false; message: string } {
-		const guildId = interaction.guildId;
-		if (!guildId) {
+		const guild = interaction.guild;
+		if (!guild) {
 			return {
 				success: false,
 				message: MusicResponse.GENERIC_ERROR,
 			};
 		}
 
-		const queue = distube.getQueue(guildId);
+		const queue = distube.getQueue(guild);
 
 		if (!queue) {
 			return {

@@ -38,7 +38,7 @@ export class QueueManagementService {
 				};
 			}
 
-			const { guildId, queue, distube } = validation.data!;
+			const { queue } = validation.data!;
 
 			try {
 				const skippedSong = queue.songs[0];
@@ -46,7 +46,7 @@ export class QueueManagementService {
 
 				// If only 1 song, use stop instead of skip
 				if (songsCount <= 1) {
-					await distube.stop(guildId);
+					await queue.stop();
 
 					const songName = DiscordUtils.formatSongName(
 						skippedSong?.name || 'Unknown',
@@ -65,7 +65,7 @@ export class QueueManagementService {
 				}
 
 				// If multiple songs, normal skip
-				await distube.skip(guildId);
+				await queue.skip();
 
 				// Create dynamic message with actual song name
 				const songName = DiscordUtils.formatSongName(
@@ -117,10 +117,10 @@ export class QueueManagementService {
 				};
 			}
 
-			const { guildId, distube } = validation.data!;
+			const { queue } = validation.data!;
 
 			try {
-				await distube.stop(guildId);
+				await queue.stop();
 				return {
 					success: true,
 					message: MusicResponse.PLAYBACK_STOPPED,
@@ -147,8 +147,8 @@ export class QueueManagementService {
 	getQueue(interaction: ChatInputCommandInteraction): Promise<QueueResult> {
 		return new Promise((resolve) => {
 			try {
-				const guildId = interaction.guildId;
-				if (!guildId) {
+				const guild = interaction.guild;
+				if (!guild) {
 					resolve({
 						success: false,
 						message: MusicResponse.GENERIC_ERROR,
@@ -157,7 +157,7 @@ export class QueueManagementService {
 				}
 
 				const distube = this.distubeService.getDistube();
-				const queue = distube.getQueue(guildId) as ExtendedQueue | null;
+				const queue = distube.getQueue(guild) as ExtendedQueue | null;
 
 				if (!queue) {
 					resolve({
@@ -227,8 +227,8 @@ export class QueueManagementService {
 	): Promise<QueueResult> {
 		return new Promise((resolve) => {
 			try {
-				const guildId = interaction.guildId;
-				if (!guildId) {
+				const guild = interaction.guild;
+				if (!guild) {
 					resolve({
 						success: false,
 						message: MusicResponse.GENERIC_ERROR,
@@ -237,7 +237,7 @@ export class QueueManagementService {
 				}
 
 				const distube = this.distubeService.getDistube();
-				const queue = distube.getQueue(guildId) as ExtendedQueue | null;
+				const queue = distube.getQueue(guild) as ExtendedQueue | null;
 
 				if (!queue) {
 					resolve({
@@ -308,8 +308,8 @@ export class QueueManagementService {
 	}> {
 		return new Promise((resolve) => {
 			try {
-				const guildId = interaction.guildId;
-				if (!guildId) {
+				const guild = interaction.guild;
+				if (!guild) {
 					resolve({
 						success: false,
 						message: MusicResponse.GENERIC_ERROR,
@@ -318,7 +318,7 @@ export class QueueManagementService {
 				}
 
 				const distube = this.distubeService.getDistube();
-				const queue = distube.getQueue(guildId) as ExtendedQueue | null;
+				const queue = distube.getQueue(guild) as ExtendedQueue | null;
 
 				if (!queue?.songs?.length) {
 					resolve({

@@ -6,7 +6,7 @@ import { EmbedBuilder } from 'discord.js';
 /**
  * Queue-like interface that works with both Queue and ExtendedQueue
  */
-interface QueueLike {
+export interface QueueLike {
 	songs: ExtendedSong[];
 	currentTime?: number;
 	formattedCurrentTime?: string;
@@ -418,9 +418,9 @@ export class EmbedBuilderUtils {
 		// Add top songs field
 		if (stats.topSongs.length > 0) {
 			let topSongsText = '';
+			const medals = ['🥇', '🥈', '🥉'];
 			stats.topSongs.forEach((song, index) => {
-				const medal =
-					index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🎵';
+				const medal = medals[index] ?? '🎵';
 				topSongsText += `${medal} **${index + 1}.** [${song.songTitle}](${song.songUrl}) — ${song.playCount} play${song.playCount === 1 ? '' : 's'}\n`;
 			});
 
@@ -434,9 +434,9 @@ export class EmbedBuilderUtils {
 		// Add top DJs field
 		if (stats.topDJs.length > 0) {
 			let topDJsText = '';
+			const medals = ['🥇', '🥈', '🥉'];
 			stats.topDJs.forEach((dj, index) => {
-				const medal =
-					index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🎧';
+				const medal = medals[index] ?? '🎧';
 				topDJsText += `${medal} **${index + 1}.** ${dj.username} — ${dj.playCount} play${dj.playCount === 1 ? '' : 's'}\n`;
 			});
 
@@ -486,9 +486,9 @@ export class EmbedBuilderUtils {
 		// Add top songs field
 		if (stats.topSongs.length > 0) {
 			let topSongsText = '';
+			const medals = ['🥇', '🥈', '🥉'];
 			stats.topSongs.forEach((song, index) => {
-				const medal =
-					index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🎵';
+				const medal = medals[index] ?? '🎵';
 				topSongsText += `${medal} **${index + 1}.** [${song.songTitle}](${song.songUrl}) — ${song.playCount} play${song.playCount === 1 ? '' : 's'}\n`;
 			});
 

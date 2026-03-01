@@ -103,6 +103,45 @@ export class DuplicateUtils {
 	}
 
 	/**
+	 * Get a composite key based on name and uploader for matching songs.
+	 */
+	private static getCompositeKey(song: Song): string | undefined {
+		const nameKey = song.name?.toLowerCase()?.trim() || '';
+		const uploaderKey = song.uploader?.name?.toLowerCase()?.trim() || '';
+
+		if (!nameKey || !uploaderKey) {
+			return undefined;
+		}
+
+		return `${nameKey}|||${uploaderKey}`;
+	}
+
+	/**
+	 * Check a song against hash maps to find duplicates
+	 */
+	private static checkDuplicateWithMaps(
+		newSong: Song,
+		urlMap: Map<string, number>,
+		nameUploaderMap: Map<string, number>,
+	): DuplicateCheckResult {
+		const urlMatch = newSong.url ? urlMap.get(newSong.url) : undefined;
+		const compositeKey = this.getCompositeKey(newSong);
+		const nameMatch = compositeKey
+			? nameUploaderMap.get(compositeKey)
+			: undefined;
+
+		if (urlMatch && nameMatch) {
+			return { isDuplicate: true, position: urlMatch, matchType: 'both' };
+		} else if (urlMatch) {
+			return { isDuplicate: true, position: urlMatch, matchType: 'url' };
+		} else if (nameMatch) {
+			return { isDuplicate: true, position: nameMatch, matchType: 'name' };
+		}
+
+		return { isDuplicate: false };
+	}
+
+	/**
 	 * Check for duplicates in a playlist
 	 * Optimized using hash-based approach: O(M + N) instead of O(M × N)
 	 * Performance: 300 new songs × 300 queue = 600 iterations (was 90,000)
@@ -128,42 +167,25 @@ export class DuplicateUtils {
 			}
 
 			// Index by name + uploader combination
-			const nameKey = song.name?.toLowerCase().trim() || '';
-			const uploaderKey = song.uploader?.name?.toLowerCase().trim() || '';
-			if (nameKey && uploaderKey) {
-				const compositeKey = `${nameKey}|||${uploaderKey}`;
+			const compositeKey = this.getCompositeKey(song);
+			if (compositeKey) {
 				nameUploaderMap.set(compositeKey, position);
 			}
 		}
 
 		// Check each new song using hash lookups - O(M) complexity
 		for (const newSong of newSongs) {
-			const urlMatch = newSong.url ? urlMap.get(newSong.url) : undefined;
+			const duplicateResult = this.checkDuplicateWithMaps(
+				newSong,
+				urlMap,
+				nameUploaderMap,
+			);
 
-			const nameKey = newSong.name?.toLowerCase().trim() || '';
-			const uploaderKey = newSong.uploader?.name?.toLowerCase().trim() || '';
-			const compositeKey = `${nameKey}|||${uploaderKey}`;
-			const nameMatch =
-				nameKey && uploaderKey ? nameUploaderMap.get(compositeKey) : undefined;
-
-			// Determine match type and position
-			if (urlMatch && nameMatch) {
+			if (duplicateResult.isDuplicate) {
 				duplicates.push({
 					song: newSong,
-					existingPosition: urlMatch,
-					matchType: 'both',
-				});
-			} else if (urlMatch) {
-				duplicates.push({
-					song: newSong,
-					existingPosition: urlMatch,
-					matchType: 'url',
-				});
-			} else if (nameMatch) {
-				duplicates.push({
-					song: newSong,
-					existingPosition: nameMatch,
-					matchType: 'name',
+					existingPosition: duplicateResult.position as number,
+					matchType: duplicateResult.matchType as MatchType,
 				});
 			} else {
 				uniqueSongs.push(newSong);

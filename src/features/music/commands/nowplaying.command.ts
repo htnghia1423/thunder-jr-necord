@@ -1,5 +1,6 @@
 import { MUSIC_COMMAND_METADATA } from '../../utility/constants/command-metadata';
 import { PlaybackControlsComponent } from '../components/playback-controls.component';
+import { toQueue } from '../interfaces/distube-types.interface';
 import { DisTubeService } from '../services/distube.service';
 import { MusicService } from '../services/music.service';
 import { EmbedBuilderUtils } from '../utils/embed-builder.utils';
@@ -51,6 +52,6 @@ export class NowPlayingCommand {
 		});
 
 		// Attach button collector
-		this.disTubeService.attachPlaybackControls(message, queue as any);
+		this.disTubeService.attachPlaybackControls(message, toQueue(queue));
 	}
 }

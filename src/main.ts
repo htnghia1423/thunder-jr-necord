@@ -7,4 +7,5 @@ async function bootstrap() {
 	await app.listen(process.env.PORT ?? 3000);
 }
 
-void bootstrap();
+// Top-level await is not supported in CommonJS modules natively.
+void bootstrap(); // NOSONAR

@@ -163,7 +163,7 @@ export class PlayCommand {
 				position = actualPosition + 1; // Position for display (1-indexed from user perspective)
 			} else {
 				// Fallback: use the last song in queue as it was just added
-				targetSong = queue.songs[queue.songs.length - 1];
+				targetSong = queue.songs.at(-1) as ExtendedSong;
 				position = queue.songs.length;
 			}
 		}
