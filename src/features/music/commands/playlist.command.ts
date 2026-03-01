@@ -105,7 +105,7 @@ export class PlaylistCommand {
 				`User ${username} (${userId}) saved playlist "${name}" with ${songs.length} songs`,
 			);
 		} catch (error) {
-			this.logger.error(`Failed to save playlist: ${error}`);
+			this.logger.error(`Failed to save playlist: ${String(error)}`);
 			const errorEmbed = EmbedBuilderUtils.createErrorEmbed(
 				'Failed to save playlist. Please try again.',
 			);
@@ -169,7 +169,7 @@ export class PlaylistCommand {
 					await new Promise((resolve) => setTimeout(resolve, 500));
 				} catch (error) {
 					this.logger.warn(
-						`Failed to load song "${song.title}" from playlist "${name}": ${error}`,
+						`Failed to load song "${song.title}" from playlist "${name}": ${String(error)}`,
 					);
 					// Continue loading other songs even if one fails
 				}
@@ -179,7 +179,7 @@ export class PlaylistCommand {
 				`User ${interaction.user.username} (${userId}) loaded playlist "${name}" with ${playlist.songs.length} songs`,
 			);
 		} catch (error) {
-			this.logger.error(`Failed to load playlist: ${error}`);
+			this.logger.error(`Failed to load playlist: ${String(error)}`);
 			const errorEmbed = EmbedBuilderUtils.createErrorEmbed(
 				'Failed to load playlist. Please try again.',
 			);
@@ -223,7 +223,7 @@ export class PlaylistCommand {
 				`User ${username} (${userId}) viewed their playlists (${playlists.length} total)`,
 			);
 		} catch (error) {
-			this.logger.error(`Failed to list playlists: ${error}`);
+			this.logger.error(`Failed to list playlists: ${String(error)}`);
 			const errorEmbed = EmbedBuilderUtils.createErrorEmbed(
 				'Failed to load playlists. Please try again.',
 			);
@@ -270,7 +270,7 @@ export class PlaylistCommand {
 				`User ${username} (${userId}) deleted playlist "${name}"`,
 			);
 		} catch (error) {
-			this.logger.error(`Failed to delete playlist: ${error}`);
+			this.logger.error(`Failed to delete playlist: ${String(error)}`);
 			const errorEmbed = EmbedBuilderUtils.createErrorEmbed(
 				'Failed to delete playlist. Please try again.',
 			);
