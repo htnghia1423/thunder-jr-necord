@@ -194,7 +194,7 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 			// Safely extract textChannel from queue object
 			const textChannel = queue?.textChannel;
 			if (textChannel) {
-				void textChannel
+				textChannel
 					.send(`❌ **Error:** ${error.message}`)
 					.catch((sendError: Error) => {
 						this.logger.error('Failed to send error message', sendError);
@@ -203,12 +203,12 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 		});
 
 		// Handle disconnect event - when bot is disconnected from voice channel
-		this.distube.on(Events.DISCONNECT, (queue: Queue) => {
+		this.distube.on(Events.DISCONNECT, async (queue: Queue) => {
 			this.logger.log(
 				`Bot disconnected from voice channel in guild ${queue.id}`,
 			);
 			try {
-				void queue.stop();
+				await queue.stop();
 				this.logger.log(`Queue stopped and cleaned up for guild ${queue.id}`);
 			} catch (error) {
 				this.logger.error(
