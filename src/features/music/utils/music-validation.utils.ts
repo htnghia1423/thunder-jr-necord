@@ -25,9 +25,15 @@ export class MusicValidationUtils {
 		valid: boolean;
 		message?: string;
 	} {
-		const permissions = voiceChannel.permissionsFor(
-			voiceChannel.guild.members.me!,
-		);
+		const me = voiceChannel.guild.members.me;
+		if (!me) {
+			return {
+				valid: false,
+				message: MusicResponse.BOT_NO_PERMISSIONS,
+			};
+		}
+
+		const permissions = voiceChannel.permissionsFor(me);
 
 		if (!permissions) {
 			return {

@@ -89,20 +89,24 @@ export class QueueCommand {
 			);
 
 			// Update message with new embed and button states
-			void buttonInteraction.update({
-				embeds: [newEmbed],
-				components: [
-					PaginationControlsComponent.create({
-						currentPage,
-						totalPages,
-					}),
-				],
-			});
+			buttonInteraction
+				.update({
+					embeds: [newEmbed],
+					components: [
+						PaginationControlsComponent.create({
+							currentPage,
+							totalPages,
+						}),
+					],
+				})
+				.catch(() => {
+					// Ignore error
+				});
 		});
 
 		collector.on('end', () => {
 			// Disable buttons when collector expires
-			void message.edit({ components: [] }).catch(() => {
+			message.edit({ components: [] }).catch(() => {
 				// Message might have been deleted, ignore error
 			});
 		});

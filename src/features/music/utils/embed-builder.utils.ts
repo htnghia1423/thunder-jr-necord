@@ -416,20 +416,7 @@ export class EmbedBuilderUtils {
 		});
 
 		// Add top songs field
-		if (stats.topSongs.length > 0) {
-			let topSongsText = '';
-			const medals = ['🥇', '🥈', '🥉'];
-			stats.topSongs.forEach((song, index) => {
-				const medal = medals[index] ?? '🎵';
-				topSongsText += `${medal} **${index + 1}.** [${song.songTitle}](${song.songUrl}) — ${song.playCount} play${song.playCount === 1 ? '' : 's'}\n`;
-			});
-
-			embed.addFields({
-				name: '🎶 Top Songs',
-				value: topSongsText || 'No data available',
-				inline: false,
-			});
-		}
+		this.addTopSongsField(embed, stats.topSongs, ' Top Songs');
 
 		// Add top DJs field
 		if (stats.topDJs.length > 0) {
@@ -484,25 +471,39 @@ export class EmbedBuilderUtils {
 		);
 
 		// Add top songs field
-		if (stats.topSongs.length > 0) {
-			let topSongsText = '';
-			const medals = ['🥇', '🥈', '🥉'];
-			stats.topSongs.forEach((song, index) => {
-				const medal = medals[index] ?? '🎵';
-				topSongsText += `${medal} **${index + 1}.** [${song.songTitle}](${song.songUrl}) — ${song.playCount} play${song.playCount === 1 ? '' : 's'}\n`;
-			});
-
-			embed.addFields({
-				name: '🎶 Your Top Songs',
-				value: topSongsText || 'No data available',
-				inline: false,
-			});
-		}
+		this.addTopSongsField(embed, stats.topSongs, '🎶 Your Top Songs');
 
 		embed.setFooter({
 			text: 'Keep discovering new music!',
 		});
 
 		return embed;
+	}
+
+	/**
+	 * Helper method to add the top songs field to an embed
+	 * @param embed - The EmbedBuilder instance
+	 * @param topSongs - Array of top songs
+	 * @param fieldTitle - Title for the field
+	 */
+	private static addTopSongsField(
+		embed: EmbedBuilder,
+		topSongs: Array<{ songTitle: string; songUrl: string; playCount: number }>,
+		fieldTitle: string,
+	): void {
+		if (topSongs.length > 0) {
+			let topSongsText = '';
+			const medals = ['🥇', '🥈', '🥉'];
+			topSongs.forEach((song, index) => {
+				const medal = medals[index] ?? '🎵';
+				topSongsText += `${medal} **${index + 1}.** [${song.songTitle}](${song.songUrl}) — ${song.playCount} play${song.playCount === 1 ? '' : 's'}\n`;
+			});
+
+			embed.addFields({
+				name: fieldTitle,
+				value: topSongsText || 'No data available',
+				inline: false,
+			});
+		}
 	}
 }
