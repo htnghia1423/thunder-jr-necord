@@ -153,21 +153,21 @@ export class LyricsService {
 		let cleaned = title;
 
 		// Remove common video quality indicators
-		cleaned = cleaned.replace(
+		cleaned = cleaned.replaceAll(
 			/\((?:HD|4K|HQ|Official|Audio|Video|Lyric(?:s)?|Music Video|MV)\)/gi,
 			'',
 		);
-		cleaned = cleaned.replace(
+		cleaned = cleaned.replaceAll(
 			/\[(?:HD|4K|HQ|Official|Audio|Video|Lyric(?:s)?|Music Video|MV)\]/gi,
 			'',
 		);
 
 		// Remove featuring artists in parentheses/brackets
-		cleaned = cleaned.replace(/\((?:ft\.|feat\.|featuring).*?\)/gi, '');
-		cleaned = cleaned.replace(/\[(?:ft\.|feat\.|featuring).*?\]/gi, '');
+		cleaned = cleaned.replaceAll(/\((?:ft\.|feat\.|featuring).*?\)/gi, '');
+		cleaned = cleaned.replaceAll(/\[(?:ft\.|feat\.|featuring).*?\]/gi, '');
 
 		// Remove extra whitespace and trim
-		cleaned = cleaned.replace(/\s+/g, ' ').trim();
+		cleaned = cleaned.replaceAll(/\s+/g, ' ').trim();
 
 		return cleaned;
 	}
@@ -179,6 +179,6 @@ export class LyricsService {
 	 */
 	private formatLyrics(lyrics: string): string {
 		// Find and bold section headers like [Chorus], [Verse 1], [Bridge], etc.
-		return lyrics.replace(/\[(.*?)\]/g, '**[$1]**');
+		return lyrics.replaceAll(/\[(.*?)\]/g, '**[$1]**');
 	}
 }
