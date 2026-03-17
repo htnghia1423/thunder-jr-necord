@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 // Commands
 import { LoopCommand } from './commands/loop.command';
+import { LyricsCommand } from './commands/lyrics.command';
 import { NowPlayingCommand } from './commands/nowplaying.command';
 import { PlayCommand } from './commands/play.command';
 import { PlaylistCommand } from './commands/playlist.command';
@@ -15,6 +16,7 @@ import { VolumeCommand } from './commands/volume.command';
 // Services
 import { AudioControlService } from './services/audio-control.service';
 import { DisTubeService } from './services/distube.service';
+import { LyricsService } from './services/lyrics.service';
 import { MusicStatsService } from './services/music-stats.service';
 import { MusicService } from './services/music.service';
 import { PlayMusicService } from './services/play-music.service';
@@ -46,6 +48,7 @@ import { YoutubeApiService } from './services/youtube-api.service';
 		MusicStatsService,
 		PlayResultFormatterService,
 		YoutubeApiService,
+		LyricsService,
 		PlayMusicService,
 		MusicService,
 
@@ -61,6 +64,7 @@ import { YoutubeApiService } from './services/youtube-api.service';
 		ShuffleCommand,
 		PlaylistCommand,
 		StatsCommand,
+		LyricsCommand,
 	],
 	exports: [MusicService, DisTubeService], // Make services available across the app
 })

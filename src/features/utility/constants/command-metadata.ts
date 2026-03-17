@@ -61,6 +61,12 @@ export const MUSIC_COMMAND_METADATA: Record<string, CommandMetadata> = {
 		helpValue: 'Randomly shuffle queue order',
 		inline: true,
 	},
+	lyrics: {
+		name: 'lyrics',
+		description: 'Show lyrics for the current song or search by name',
+		helpValue: 'Show song lyrics\n`/lyrics query: Bohemian Rhapsody`',
+		inline: true,
+	},
 };
 
 export const UTILITY_COMMAND_METADATA: Record<string, CommandMetadata> = {

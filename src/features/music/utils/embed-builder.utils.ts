@@ -506,4 +506,51 @@ export class EmbedBuilderUtils {
 			});
 		}
 	}
+
+	/**
+	 * Create an embed displaying song lyrics with pagination support
+	 * @param songTitle - Title of the song
+	 * @param artist - Artist name
+	 * @param lyricsChunk - The lyrics content for the current page
+	 * @param thumbnail - Optional song thumbnail/artwork URL
+	 * @param currentPage - Current page number (1-indexed)
+	 * @param totalPages - Total number of pages
+	 * @returns EmbedBuilder configured for lyrics display
+	 */
+	static createLyricsEmbed(
+		songTitle: string,
+		artist: string,
+		lyricsChunk: string,
+		thumbnail?: string,
+		currentPage?: number,
+		totalPages?: number,
+	): EmbedBuilder {
+		const embed = new EmbedBuilder()
+			.setColor(MusicConstants.COLOR_INFO)
+			.setTitle(`🎤 Lyrics: ${songTitle}`)
+			.setDescription(lyricsChunk)
+			.setTimestamp();
+
+		// Add artist field
+		embed.addFields({
+			name: '👤 Artist',
+			value: artist,
+			inline: true,
+		});
+
+		// Add thumbnail if available
+		if (thumbnail) {
+			embed.setThumbnail(thumbnail);
+		}
+
+		// Add footer with pagination info and attribution
+		let footerText = 'Data provided by Genius';
+		if (currentPage && totalPages) {
+			footerText = `Page ${currentPage} of ${totalPages} | ${footerText}`;
+		}
+
+		embed.setFooter({ text: footerText });
+
+		return embed;
+	}
 }

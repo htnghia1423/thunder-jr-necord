@@ -34,6 +34,7 @@
 		"@snazzah/davey": "^0.1.6",
 		"axios": "^1.13.5",
 		"distube": "^5.2.3",
+		"genius-lyrics": "^4.4.7",
 		"opusscript": "^0.0.8",
 		"pg": "^8.19.0",
 		"reflect-metadata": "^0.2.2",
