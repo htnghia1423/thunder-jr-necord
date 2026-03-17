@@ -147,6 +147,7 @@ export class LyricsCommand {
 				}
 
 				// Create new embed for current page
+
 				const newEmbed = EmbedBuilderUtils.createLyricsEmbed(
 					lyricsResult.title,
 					lyricsResult.artist,
