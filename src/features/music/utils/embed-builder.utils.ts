@@ -544,7 +544,7 @@ export class EmbedBuilderUtils {
 		}
 
 		// Add footer with pagination info and attribution
-		let footerText = 'Data provided by Genius';
+		let footerText = 'Data provided by LRCLIB (lrclib.net)';
 		if (currentPage && totalPages) {
 			footerText = `Page ${currentPage} of ${totalPages} | ${footerText}`;
 		}
