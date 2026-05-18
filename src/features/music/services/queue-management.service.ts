@@ -347,26 +347,48 @@ export class QueueManagementService {
 				} else if (options.songName) {
 					// Remove by name (fuzzy search)
 					const searchTerm = options.songName.toLowerCase();
-					for (let i = 0; i < queue.songs.length; i++) {
-						const song = queue.songs[i];
-						if (
-							song.name?.toLowerCase().includes(searchTerm) ||
-							song.uploader?.name?.toLowerCase().includes(searchTerm)
-						) {
-							songToRemove = song as ExtendedSong;
-							removeIndex = i;
-							method = 'name';
-							break;
-						}
-					}
+					const matches = queue.songs
+						.map((song, index) => ({ song, index }))
+						.filter(({ song }) => {
+							return (
+								song.name?.toLowerCase().includes(searchTerm) ||
+								song.uploader?.name?.toLowerCase().includes(searchTerm)
+							);
+						});
 
-					if (!songToRemove) {
+					if (matches.length === 0) {
 						resolve({
 							success: false,
 							message: `No song found with name: "${options.songName}".`,
 						});
 						return;
 					}
+
+					if (matches.length > 1) {
+						const matchList = matches
+							.slice(0, 5)
+							.map(({ song, index }) => {
+								return `#${index + 1}: ${DiscordUtils.formatSongName(song.name || 'Unknown')}`;
+							})
+							.join('\n');
+						const moreText =
+							matches.length > 5
+								? `\n...and ${matches.length - 5} more match${matches.length - 5 === 1 ? '' : 'es'}`
+								: '';
+
+						resolve({
+							success: false,
+							message:
+								`Found ${matches.length} matching songs. Please remove by position instead:\n` +
+								`${matchList}${moreText}`,
+						});
+						return;
+					}
+
+					const [match] = matches;
+					songToRemove = match.song as ExtendedSong;
+					removeIndex = match.index;
+					method = 'name';
 				}
 
 				// Cannot remove currently playing song (index 0)

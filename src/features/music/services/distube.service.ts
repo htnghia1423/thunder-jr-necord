@@ -307,6 +307,11 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 					await this.showLyricsForQueue(interaction, queue);
 					return;
 
+				case 'music_refresh':
+					await interaction.deferUpdate();
+					await this.updateNowPlayingMessage(interaction, queue);
+					return;
+
 				case 'music_prev':
 					await queue.previous();
 					await interaction.reply({

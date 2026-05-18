@@ -162,13 +162,41 @@ export class PlaylistCommand {
 			);
 			await interaction.editReply({ embeds: [loadingEmbed] });
 
+			let loadedCount = 0;
+			let failedCount = 0;
+			const totalSongs = playlist.songs.length;
+
 			// Load songs into the queue sequentially
-			for (const song of playlist.songs) {
+			for (const [index, song] of playlist.songs.entries()) {
 				try {
-					await this.musicService.play(interaction, song.url);
+					const result = await this.musicService.play(interaction, song.url);
+					if (result.success) {
+						loadedCount++;
+					} else {
+						failedCount++;
+						this.logger.warn(
+							`Failed to load song "${song.title}" from playlist "${name}": ${result.message}`,
+						);
+					}
+
+					if (
+						index === totalSongs - 1 ||
+						loadedCount + failedCount === 1 ||
+						(loadedCount + failedCount) % 5 === 0
+					) {
+						await interaction.editReply({
+							content:
+								`Loading **${name}**...\n` +
+								`Loaded: **${loadedCount}/${totalSongs}**` +
+								(failedCount > 0 ? `\nFailed: **${failedCount}**` : ''),
+							embeds: [],
+						});
+					}
+
 					// Small delay between songs to avoid rate limiting
 					await new Promise((resolve) => setTimeout(resolve, 500));
 				} catch (error) {
+					failedCount++;
 					this.logger.warn(
 						`Failed to load song "${song.title}" from playlist "${name}": ${String(error)}`,
 					);
@@ -176,8 +204,16 @@ export class PlaylistCommand {
 				}
 			}
 
+			await interaction.editReply({
+				content:
+					`Loaded playlist **${name}**.\n` +
+					`Added: **${loadedCount}/${totalSongs}** song${loadedCount === 1 ? '' : 's'}` +
+					(failedCount > 0 ? `\nFailed: **${failedCount}**` : ''),
+				embeds: [],
+			});
+
 			this.logger.log(
-				`User ${interaction.user.username} (${userId}) loaded playlist "${name}" with ${playlist.songs.length} songs`,
+				`User ${interaction.user.username} (${userId}) loaded playlist "${name}" with ${loadedCount}/${playlist.songs.length} songs (${failedCount} failed)`,
 			);
 		} catch (error) {
 			this.logger.error(`Failed to load playlist: ${String(error)}`);

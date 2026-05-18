@@ -29,6 +29,11 @@ interface SongMetadata {
 	searchQueries: string[];
 }
 
+interface LyricsCacheEntry {
+	result: LyricsResult;
+	expiresAt: number;
+}
+
 /**
  * LyricsService fetches song lyrics from LRCLIB (https://lrclib.net)
  * — a developer-friendly, Cloudflare-free REST API requiring no API key.
@@ -42,6 +47,10 @@ export class LyricsService {
 	private readonly logger = new Logger(LyricsService.name);
 	private readonly MAX_CHUNK_LENGTH = 3000;
 	private readonly BASE_URL = 'https://lrclib.net/api';
+	private readonly CACHE_TTL_MS = 15 * 60 * 1000;
+	private readonly MAX_CACHE_ENTRIES = 200;
+	private readonly lyricsCache = new Map<string, LyricsCacheEntry>();
+	private readonly pendingLookups = new Map<string, Promise<LyricsResult>>();
 
 	constructor() {
 		this.logger.log('LyricsService initialized — using LRCLIB REST API');
@@ -59,6 +68,38 @@ export class LyricsService {
 	 */
 	async getLyrics(query: string): Promise<LyricsResult> {
 		const cleanedQuery = this.cleanSongTitle(query);
+		const cacheKey = this.createCacheKey('query', cleanedQuery);
+
+		return this.getOrSetCachedLyrics(cacheKey, async () => {
+			return this.fetchLyricsByQuery(query, cleanedQuery);
+		});
+	}
+
+	/**
+	 * Get lyrics for a queued song by using both title and artist/uploader metadata.
+	 * This avoids ambiguous matches when multiple songs share the same title.
+	 */
+	async getLyricsForSong(
+		title: string,
+		artistName?: string,
+	): Promise<LyricsResult> {
+		const metadata = this.resolveSongMetadata(title, artistName);
+		const cacheKey = this.createCacheKey(
+			'song',
+			metadata.artistName || '',
+			metadata.trackName,
+			...metadata.searchQueries,
+		);
+
+		return this.getOrSetCachedLyrics(cacheKey, async () => {
+			return this.fetchLyricsBySongMetadata(title, metadata);
+		});
+	}
+
+	private async fetchLyricsByQuery(
+		query: string,
+		cleanedQuery: string,
+	): Promise<LyricsResult> {
 		this.logger.log(
 			`Searching for lyrics: "${cleanedQuery}" (original: "${query}")`,
 		);
@@ -84,18 +125,17 @@ export class LyricsService {
 	}
 
 	/**
-	 * Get lyrics for a queued song by using both title and artist/uploader metadata.
-	 * This avoids ambiguous matches when multiple songs share the same title.
+	 * Fetch lyrics using resolved song metadata and fallback search candidates.
 	 */
-	async getLyricsForSong(
+	private async fetchLyricsBySongMetadata(
 		title: string,
-		artistName?: string,
+		metadata: SongMetadata,
 	): Promise<LyricsResult> {
 		const {
 			trackName,
 			artistName: resolvedArtistName,
 			searchQueries,
-		} = this.resolveSongMetadata(title, artistName);
+		} = metadata;
 
 		if (resolvedArtistName) {
 			this.logger.log(
@@ -117,6 +157,49 @@ export class LyricsService {
 		}
 
 		return this.fetchBySearchCandidates(searchQueries, title);
+	}
+
+	private async getOrSetCachedLyrics(
+		cacheKey: string,
+		producer: () => Promise<LyricsResult>,
+	): Promise<LyricsResult> {
+		const cached = this.lyricsCache.get(cacheKey);
+		if (cached && cached.expiresAt > Date.now()) {
+			this.logger.debug(`Lyrics cache hit: ${cacheKey}`);
+			return cached.result;
+		}
+
+		const pendingLookup = this.pendingLookups.get(cacheKey);
+		if (pendingLookup) {
+			this.logger.debug(`Lyrics lookup already pending: ${cacheKey}`);
+			return pendingLookup;
+		}
+
+		const lookup = producer()
+			.then((result) => {
+				this.setCachedLyrics(cacheKey, result);
+				return result;
+			})
+			.finally(() => {
+				this.pendingLookups.delete(cacheKey);
+			});
+
+		this.pendingLookups.set(cacheKey, lookup);
+		return lookup;
+	}
+
+	private setCachedLyrics(cacheKey: string, result: LyricsResult): void {
+		if (this.lyricsCache.size >= this.MAX_CACHE_ENTRIES) {
+			const oldestKey = this.lyricsCache.keys().next().value;
+			if (oldestKey) {
+				this.lyricsCache.delete(oldestKey);
+			}
+		}
+
+		this.lyricsCache.set(cacheKey, {
+			result,
+			expiresAt: Date.now() + this.CACHE_TTL_MS,
+		});
 	}
 
 	/**
@@ -448,6 +531,12 @@ export class LyricsService {
 		];
 
 		return [...new Set(candidates.filter(Boolean) as string[])];
+	}
+
+	private createCacheKey(...parts: string[]): string {
+		return parts
+			.map((part) => part.toLowerCase().replaceAll(/\s+/g, ' ').trim())
+			.join('|');
 	}
 
 	/**

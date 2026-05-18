@@ -91,6 +91,11 @@ export class PlaybackControlsComponent {
 						.setLabel('Lyrics')
 						.setStyle(ButtonStyle.Secondary)
 						.setDisabled(disabled),
+					new ButtonBuilder()
+						.setCustomId('music_refresh')
+						.setLabel('Refresh')
+						.setStyle(ButtonStyle.Secondary)
+						.setDisabled(disabled),
 				),
 			);
 		}
