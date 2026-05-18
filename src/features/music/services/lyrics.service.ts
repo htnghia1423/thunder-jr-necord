@@ -78,6 +78,39 @@ export class LyricsService {
 	}
 
 	/**
+	 * Get lyrics for a queued song by using both title and artist/uploader metadata.
+	 * This avoids ambiguous matches when multiple songs share the same title.
+	 */
+	async getLyricsForSong(
+		title: string,
+		artistName?: string,
+	): Promise<LyricsResult> {
+		const { trackName, artistName: resolvedArtistName } =
+			this.resolveSongMetadata(title, artistName);
+
+		if (resolvedArtistName) {
+			this.logger.log(
+				`Searching for lyrics by metadata: "${resolvedArtistName} - ${trackName}"`,
+			);
+
+			const track = await this.fetchByArtistAndTrack(
+				resolvedArtistName,
+				trackName,
+			);
+
+			if (track) {
+				return this.buildResult(track);
+			}
+
+			this.logger.log(
+				`Direct metadata lookup returned no result for "${resolvedArtistName} - ${trackName}", falling back to search`,
+			);
+		}
+
+		return this.getLyrics(trackName);
+	}
+
+	/**
 	 * Split lyrics into chunks that fit within Discord embed limits.
 	 * @param lyrics - Full lyrics text
 	 * @param maxLength - Maximum characters per chunk (default: 3000)
@@ -264,6 +297,48 @@ export class LyricsService {
 		cleaned = cleaned.replaceAll(/\s+/g, ' ').trim();
 
 		return cleaned;
+	}
+
+	/**
+	 * Resolve usable LRCLIB metadata from a DisTube title and optional uploader.
+	 */
+	private resolveSongMetadata(
+		title: string,
+		artistName?: string,
+	): { trackName: string; artistName?: string } {
+		const cleanedTitle = this.cleanSongTitle(title);
+		const cleanedArtistName = artistName
+			? this.cleanArtistName(artistName)
+			: undefined;
+
+		const dashIndex = cleanedTitle.indexOf(' - ');
+		if (dashIndex !== -1) {
+			const titleArtistName = cleanedTitle.slice(0, dashIndex).trim();
+			const trackName = cleanedTitle.slice(dashIndex + 3).trim();
+
+			return {
+				trackName,
+				artistName: cleanedArtistName || titleArtistName,
+			};
+		}
+
+		return {
+			trackName: cleanedTitle,
+			artistName: cleanedArtistName,
+		};
+	}
+
+	/**
+	 * Clean uploader/artist names from common YouTube channel suffixes.
+	 */
+	private cleanArtistName(artistName: string): string {
+		return artistName
+			.replaceAll(/\s*-\s*Topic$/gi, '')
+			.replaceAll(/\s*VEVO$/gi, '')
+			.replaceAll(/\s+Official$/gi, '')
+			.replaceAll(/\s+Official\s+Channel$/gi, '')
+			.replaceAll(/\s+/g, ' ')
+			.trim();
 	}
 
 	/**

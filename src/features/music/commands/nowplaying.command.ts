@@ -39,7 +39,7 @@ export class NowPlayingCommand {
 
 		// Create embed and buttons
 		const embed = EmbedBuilderUtils.createNowPlayingEmbed(queue);
-		const buttons = PlaybackControlsComponent.create({
+		const buttons = PlaybackControlsComponent.createRows({
 			isPaused: queue.paused,
 			hasPreviousSongs: queue.previousSongs && queue.previousSongs.length > 0,
 			hasNextSongs: queue.songs.length > 1,
@@ -48,7 +48,7 @@ export class NowPlayingCommand {
 		// Send message with buttons
 		const message = await interaction.editReply({
 			embeds: [embed],
-			components: [buttons],
+			components: buttons,
 		});
 
 		// Attach button collector

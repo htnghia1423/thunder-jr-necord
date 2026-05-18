@@ -1,3 +1,4 @@
+import { PaginationControlsComponent } from '../components/pagination-controls.component';
 import { PlaybackControlsComponent } from '../components/playback-controls.component';
 import { MusicResponse } from '../enums/music.enum';
 import { MusicConstants } from '../music.constants';
@@ -22,6 +23,7 @@ import {
 } from 'discord.js';
 import { DisTube, Events, Playlist, Queue, Song } from 'distube';
 
+import { LyricsService } from './lyrics.service';
 import { MusicStatsService } from './music-stats.service';
 
 /**
@@ -36,6 +38,7 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 	constructor(
 		private readonly client: Client,
 		private readonly musicStatsService: MusicStatsService,
+		private readonly lyricsService: LyricsService,
 	) {}
 
 	onModuleInit() {
@@ -109,11 +112,11 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 	): Promise<void> {
 		try {
 			// Disable all buttons when collector expires using PlaybackControlsComponent
-			const disabledButtons = PlaybackControlsComponent.create({
+			const disabledButtons = PlaybackControlsComponent.createRows({
 				disabled: true,
 			});
 
-			await message.edit({ components: [disabledButtons] }).catch(() => {
+			await message.edit({ components: disabledButtons }).catch(() => {
 				// Message might have been deleted
 			});
 		} catch (error) {
@@ -300,6 +303,10 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 
 		try {
 			switch (interaction.customId) {
+				case 'music_lyrics':
+					await this.showLyricsForQueue(interaction, queue);
+					return;
+
 				case 'music_prev':
 					await queue.previous();
 					await interaction.reply({
@@ -377,6 +384,149 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 	}
 
 	/**
+	 * Show lyrics for the current queue song from the Now Playing button.
+	 */
+	private async showLyricsForQueue(
+		interaction: ButtonInteraction,
+		queue: Queue,
+	): Promise<void> {
+		await interaction.deferReply({
+			flags: MessageFlags.Ephemeral,
+		});
+
+		try {
+			const currentSong = queue.songs[0];
+
+			if (!currentSong?.name) {
+				const errorEmbed = EmbedBuilderUtils.createErrorEmbed(
+					'Could not detect current song.',
+				);
+				await interaction.editReply({ embeds: [errorEmbed] });
+				return;
+			}
+
+			const lyricsResult = await this.lyricsService.getLyricsForSong(
+				currentSong.name,
+				currentSong.uploader?.name,
+			);
+			const chunks = this.lyricsService.splitLyricsIntoChunks(
+				lyricsResult.lyrics,
+			);
+
+			if (chunks.length === 1) {
+				const embed = EmbedBuilderUtils.createLyricsEmbed(
+					lyricsResult.title,
+					lyricsResult.artist,
+					chunks[0],
+					lyricsResult.thumbnail,
+				);
+				await interaction.editReply({ embeds: [embed] });
+				return;
+			}
+
+			await this.showPaginatedLyrics(interaction, lyricsResult, chunks);
+		} catch (error) {
+			this.logger.error(
+				'Failed to fetch lyrics from Now Playing button',
+				error,
+			);
+
+			let errorMessage = 'Failed to fetch lyrics. Please try again later.';
+			if (
+				error instanceof Error &&
+				(error.message.includes('No results found') ||
+					error.message.includes('not available'))
+			) {
+				errorMessage = `${error.message}\n\n**Tip:** Try the \`/lyrics\` command with a more specific query.`;
+			}
+
+			const errorEmbed = EmbedBuilderUtils.createErrorEmbed(errorMessage);
+			await interaction.editReply({ embeds: [errorEmbed] });
+		}
+	}
+
+	/**
+	 * Show paginated lyrics in an ephemeral interaction response.
+	 */
+	private async showPaginatedLyrics(
+		interaction: ButtonInteraction,
+		lyricsResult: Awaited<ReturnType<LyricsService['getLyricsForSong']>>,
+		chunks: string[],
+	): Promise<void> {
+		let currentPage = 1;
+		const totalPages = chunks.length;
+		const customIds = {
+			previous: 'nowplaying_lyrics_previous',
+			next: 'nowplaying_lyrics_next',
+		};
+
+		const initialEmbed = EmbedBuilderUtils.createLyricsEmbed(
+			lyricsResult.title,
+			lyricsResult.artist,
+			chunks[currentPage - 1],
+			lyricsResult.thumbnail,
+			currentPage,
+			totalPages,
+		);
+
+		const message = await interaction.editReply({
+			embeds: [initialEmbed],
+			components: [
+				PaginationControlsComponent.create({
+					currentPage,
+					totalPages,
+					customIds,
+				}),
+			],
+		});
+
+		const collector = message.createMessageComponentCollector({
+			componentType: ComponentType.Button,
+			filter: (buttonInteraction) =>
+				buttonInteraction.user.id === interaction.user.id,
+			time: 120000,
+		});
+
+		collector.on('collect', (buttonInteraction) => {
+			if (buttonInteraction.customId === customIds.previous) {
+				currentPage = Math.max(1, currentPage - 1);
+			} else if (buttonInteraction.customId === customIds.next) {
+				currentPage = Math.min(totalPages, currentPage + 1);
+			}
+
+			const embed = EmbedBuilderUtils.createLyricsEmbed(
+				lyricsResult.title,
+				lyricsResult.artist,
+				chunks[currentPage - 1],
+				lyricsResult.thumbnail,
+				currentPage,
+				totalPages,
+			);
+
+			buttonInteraction
+				.update({
+					embeds: [embed],
+					components: [
+						PaginationControlsComponent.create({
+							currentPage,
+							totalPages,
+							customIds,
+						}),
+					],
+				})
+				.catch((error) => {
+					this.logger.error('Failed to update Now Playing lyrics page', error);
+				});
+		});
+
+		collector.on('end', () => {
+			message.edit({ components: [] }).catch(() => {
+				// Message might have been deleted or expired
+			});
+		});
+	}
+
+	/**
 	 * Update the Now Playing message with current queue state
 	 */
 	private async updateNowPlayingMessage(
@@ -387,7 +537,7 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 			const embed = EmbedBuilderUtils.createNowPlayingEmbed(
 				queue as unknown as QueueLike,
 			);
-			const buttons = PlaybackControlsComponent.create({
+			const buttons = PlaybackControlsComponent.createRows({
 				isPaused: queue.paused,
 				hasPreviousSongs: queue.previousSongs && queue.previousSongs.length > 0,
 				hasNextSongs: queue.songs.length > 1,
@@ -395,7 +545,7 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 
 			await interaction.message.edit({
 				embeds: [embed],
-				components: [buttons],
+				components: buttons,
 			});
 		} catch (error) {
 			this.logger.error('Failed to update Now Playing message', error);

@@ -12,6 +12,8 @@ export interface PlaybackControlsOptions {
 	hasNextSongs?: boolean;
 	/** Force all buttons to be disabled (e.g., after collector timeout) */
 	disabled?: boolean;
+	/** Whether to include the lyrics action row */
+	includeLyrics?: boolean;
 }
 
 /**
@@ -70,5 +72,29 @@ export class PlaybackControlsComponent {
 				.setStyle(ButtonStyle.Primary)
 				.setDisabled(disabled),
 		);
+	}
+
+	/**
+	 * Create playback controls plus optional secondary action rows.
+	 */
+	static createRows(
+		options: PlaybackControlsOptions = {},
+	): ActionRowBuilder<ButtonBuilder>[] {
+		const { disabled = false, includeLyrics = true } = options;
+		const rows = [this.create(options)];
+
+		if (includeLyrics) {
+			rows.push(
+				new ActionRowBuilder<ButtonBuilder>().addComponents(
+					new ButtonBuilder()
+						.setCustomId('music_lyrics')
+						.setLabel('Lyrics')
+						.setStyle(ButtonStyle.Secondary)
+						.setDisabled(disabled),
+				),
+			);
+		}
+
+		return rows;
 	}
 }

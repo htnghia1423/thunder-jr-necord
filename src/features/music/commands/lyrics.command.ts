@@ -2,7 +2,7 @@ import { MUSIC_COMMAND_METADATA } from '../../utility/constants/command-metadata
 import { PaginationControlsComponent } from '../components/pagination-controls.component';
 import { LyricsDto } from '../dto/lyrics.dto';
 import { DisTubeService } from '../services/distube.service';
-import { LyricsService } from '../services/lyrics.service';
+import { LyricsResult, LyricsService } from '../services/lyrics.service';
 import { MusicService } from '../services/music.service';
 import { EmbedBuilderUtils } from '../utils/embed-builder.utils';
 import { Injectable, Logger } from '@nestjs/common';
@@ -45,11 +45,13 @@ export class LyricsCommand {
 		await interaction.deferReply();
 
 		try {
-			// Determine search query
-			let searchQuery = dto.query;
+			// Determine search query or current song metadata
+			let lyricsResult: LyricsResult;
 
 			// If no query provided, try to get current playing song
-			if (!searchQuery) {
+			if (dto.query) {
+				lyricsResult = await this.lyricsService.getLyrics(dto.query);
+			} else {
 				this.logger.log(
 					'No query provided, attempting to auto-detect current song',
 				);
@@ -76,12 +78,14 @@ export class LyricsCommand {
 					return;
 				}
 
-				searchQuery = currentSong.name;
-				this.logger.log(`Auto-detected song: "${searchQuery}"`);
+				lyricsResult = await this.lyricsService.getLyricsForSong(
+					currentSong.name,
+					currentSong.uploader?.name,
+				);
+				this.logger.log(
+					`Auto-detected song: "${currentSong.uploader?.name || 'Unknown artist'} - ${currentSong.name}"`,
+				);
 			}
-
-			// Fetch lyrics from Genius API
-			const lyricsResult = await this.lyricsService.getLyrics(searchQuery);
 
 			// Split lyrics into chunks for pagination
 			const chunks = this.lyricsService.splitLyricsIntoChunks(
