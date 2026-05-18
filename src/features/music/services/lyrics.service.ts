@@ -156,7 +156,7 @@ export class LyricsService {
 			);
 		}
 
-		return this.fetchBySearchCandidates(searchQueries, title);
+		return this.fetchBySearchCandidates(searchQueries, title, metadata);
 	}
 
 	private async getOrSetCachedLyrics(
@@ -282,15 +282,7 @@ export class LyricsService {
 		cleanedQuery: string,
 		originalQuery: string,
 	): Promise<LyricsResult> {
-		const url = new URL(`${this.BASE_URL}/search`);
-		url.searchParams.set('q', cleanedQuery);
-
-		this.logger.debug(`LRCLIB SEARCH: ${url.toString()}`);
-
-		const response = await this.request(url.toString());
-		this.assertOk(response, url.toString());
-
-		const results = (await response.json()) as LrclibTrack[];
+		const results = await this.fetchSearchResults(cleanedQuery);
 
 		if (!Array.isArray(results) || results.length === 0) {
 			this.logger.warn(`No results found for query: "${cleanedQuery}"`);
@@ -303,23 +295,62 @@ export class LyricsService {
 		return this.buildResult(results[0]);
 	}
 
+	private async fetchSearchResults(query: string): Promise<LrclibTrack[]> {
+		const url = new URL(`${this.BASE_URL}/search`);
+		url.searchParams.set('q', query);
+
+		this.logger.debug(`LRCLIB SEARCH: ${url.toString()}`);
+
+		const response = await this.request(url.toString());
+		this.assertOk(response, url.toString());
+
+		return response.json() as Promise<LrclibTrack[]>;
+	}
+
 	/**
 	 * Try multiple cleaned search candidates before reporting no lyrics.
 	 */
 	private async fetchBySearchCandidates(
 		queries: string[],
 		originalQuery: string,
+		metadata?: SongMetadata,
 	): Promise<LyricsResult> {
 		let lastError: Error | undefined;
 
 		for (const query of queries) {
 			try {
+				if (metadata) {
+					const results = await this.fetchSearchResults(query);
+
+					if (!Array.isArray(results) || results.length === 0) {
+						this.logger.warn(`No results found for query: "${query}"`);
+						throw new Error(
+							`No results found for "${originalQuery}". Try using a different search term or check the spelling.`,
+						);
+					}
+
+					const matchedTrack = this.findRelevantTrack(results, metadata);
+					if (!matchedTrack) {
+						this.logger.warn(
+							`Rejected ${results.length} LRCLIB result(s) for query "${query}" because none matched "${metadata.trackName}"`,
+						);
+						throw new Error(
+							`No reliable lyrics match found for "${originalQuery}". Try using the \`/lyrics query:\` option with the exact artist and song title.`,
+						);
+					}
+
+					return this.buildResult(matchedTrack);
+				}
+
 				return await this.fetchBySearch(query, originalQuery);
 			} catch (error) {
 				if (error instanceof Error) {
 					lastError = error;
 
-					if (!error.message.includes('No results found')) {
+					if (
+						!error.message.includes('No results found') &&
+						!error.message.includes('No reliable lyrics match found')
+					) {
 						throw error;
 					}
 				}
@@ -394,6 +425,55 @@ export class LyricsService {
 			lyrics: this.formatLyrics(track.plainLyrics),
 			// LRCLIB does not provide artwork; thumbnail is intentionally omitted
 		};
+	}
+
+	private findRelevantTrack(
+		results: LrclibTrack[],
+		metadata: SongMetadata,
+	): LrclibTrack | null {
+		return (
+			results.find((track) => this.isRelevantTrack(track, metadata)) || null
+		);
+	}
+
+	private isRelevantTrack(track: LrclibTrack, metadata: SongMetadata): boolean {
+		const expectedTitle = this.normalizeForMatch(metadata.trackName);
+		const resultTitle = this.normalizeForMatch(track.trackName);
+
+		if (!expectedTitle || !resultTitle) {
+			return false;
+		}
+
+		if (
+			resultTitle === expectedTitle ||
+			resultTitle.includes(expectedTitle) ||
+			expectedTitle.includes(resultTitle)
+		) {
+			return true;
+		}
+
+		const expectedTokens = this.getMeaningfulTokens(expectedTitle);
+		if (expectedTokens.length === 0) {
+			return false;
+		}
+
+		return expectedTokens.every((token) => resultTitle.includes(token));
+	}
+
+	private normalizeForMatch(value: string): string {
+		return value
+			.normalize('NFD')
+			.replaceAll(/[\u0300-\u036f]/g, '')
+			.toLowerCase()
+			.replaceAll(/[^a-z0-9]+/g, ' ')
+			.replaceAll(/\s+/g, ' ')
+			.trim();
+	}
+
+	private getMeaningfulTokens(value: string): string[] {
+		return value
+			.split(' ')
+			.filter((token) => token.length >= 3 && !/^\d+$/.test(token));
 	}
 
 	/**
