@@ -18,6 +18,7 @@ import {
 	ComponentType,
 	GuildMember,
 	Message,
+	MessageFlags,
 } from 'discord.js';
 import { DisTube, Events, Playlist, Queue, Song } from 'distube';
 
@@ -292,7 +293,7 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 		if (!userVoiceChannel || userVoiceChannel.id !== botVoiceChannel?.id) {
 			await interaction.reply({
 				content: MusicResponse.NOT_IN_SAME_VOICE_CHANNEL,
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			});
 			return;
 		}
@@ -303,7 +304,7 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 					await queue.previous();
 					await interaction.reply({
 						content: '⏮️ Playing previous song...',
-						ephemeral: true,
+						flags: MessageFlags.Ephemeral,
 					});
 					break;
 
@@ -312,13 +313,13 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 						await queue.resume();
 						await interaction.reply({
 							content: '▶️ Resumed playback',
-							ephemeral: true,
+							flags: MessageFlags.Ephemeral,
 						});
 					} else {
 						await queue.pause();
 						await interaction.reply({
 							content: '⏸️ Paused playback',
-							ephemeral: true,
+							flags: MessageFlags.Ephemeral,
 						});
 					}
 					break;
@@ -327,7 +328,7 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 					await queue.stop();
 					await interaction.reply({
 						content: '⏹️ Stopped playback and cleared queue',
-						ephemeral: true,
+						flags: MessageFlags.Ephemeral,
 					});
 					break;
 
@@ -335,7 +336,7 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 					await queue.skip();
 					await interaction.reply({
 						content: '⏭️ Skipped to next song',
-						ephemeral: true,
+						flags: MessageFlags.Ephemeral,
 					});
 					break;
 
@@ -348,7 +349,7 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 					const modeNames = ['Off', 'Song', 'Queue'];
 					await interaction.reply({
 						content: `🔁 Loop mode: ${modeNames[nextMode]}`,
-						ephemeral: true,
+						flags: MessageFlags.Ephemeral,
 					});
 					break;
 				}
@@ -356,7 +357,7 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 				default:
 					await interaction.reply({
 						content: '❌ Unknown button action',
-						ephemeral: true,
+						flags: MessageFlags.Ephemeral,
 					});
 			}
 
@@ -367,7 +368,7 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 			await interaction
 				.reply({
 					content: '❌ Failed to execute playback action',
-					ephemeral: true,
+					flags: MessageFlags.Ephemeral,
 				})
 				.catch(() => {
 					// Interaction might have already been replied to

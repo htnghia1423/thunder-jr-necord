@@ -145,3 +145,7 @@ youtube-cookies.json
 *-player-script.js
 
 /generated/prisma
+/src/generated/prisma
+/.opencode
+AGENTS.md
+opencode.json

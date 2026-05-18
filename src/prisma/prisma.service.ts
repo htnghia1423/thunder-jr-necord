@@ -5,8 +5,9 @@ import {
 	OnModuleInit,
 } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '@prisma/client';
 import { Pool, PoolConfig } from 'pg';
+
+import { PrismaClient } from '@/generated/prisma/client';
 
 @Injectable()
 export class PrismaService
@@ -26,13 +27,10 @@ export class PrismaService
 		 * in the strict linting environment.
 		 */
 
-		// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
 		const pool = new Pool(poolConfig);
 
-		// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
 		const adapter = new PrismaPg(pool);
 
-		// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 		super({ adapter });
 	}
 

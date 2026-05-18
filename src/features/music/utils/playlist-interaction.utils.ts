@@ -18,7 +18,6 @@ export class PlaylistInteractionUtils {
 			const response = await interaction.followUp({
 				content: '🤔 **What would you like to do:**',
 				components: [DuplicateControlsComponent.create()],
-				ephemeral: false, // Make it visible to everyone so it can be deleted
 			});
 
 			const collector = response.createMessageComponentCollector({

@@ -1,6 +1,7 @@
 import { MusicStatsService } from '../services/music-stats.service';
 import { EmbedBuilderUtils } from '../utils/embed-builder.utils';
 import { Injectable, Logger } from '@nestjs/common';
+import { MessageFlags } from 'discord.js';
 import type { SlashCommandContext } from 'necord';
 import { Context, Subcommand, createCommandGroupDecorator } from 'necord';
 
@@ -35,7 +36,7 @@ export class StatsCommand {
 		const [interaction] = context;
 		if (!interaction.isChatInputCommand()) return;
 
-		await interaction.deferReply({ ephemeral: false });
+		await interaction.deferReply();
 
 		try {
 			const guildId = interaction.guildId;
@@ -103,7 +104,7 @@ export class StatsCommand {
 		const [interaction] = context;
 		if (!interaction.isChatInputCommand()) return;
 
-		await interaction.deferReply({ ephemeral: true });
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 		try {
 			const guildId = interaction.guildId;

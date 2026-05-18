@@ -10,6 +10,7 @@ import { PlaylistStorageService } from '../services/playlist-storage.service';
 import { EmbedBuilderUtils } from '../utils/embed-builder.utils';
 import { MusicValidationUtils } from '../utils/music-validation.utils';
 import { Injectable, Logger } from '@nestjs/common';
+import { MessageFlags } from 'discord.js';
 import type { SlashCommandContext } from 'necord';
 import {
 	Context,
@@ -45,7 +46,7 @@ export class PlaylistCommand {
 		const [interaction] = context;
 		if (!interaction.isChatInputCommand()) return;
 
-		await interaction.deferReply({ ephemeral: true });
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 		try {
 			// Validate basic requirements (user in voice channel)
@@ -195,7 +196,7 @@ export class PlaylistCommand {
 		const [interaction] = context;
 		if (!interaction.isChatInputCommand()) return;
 
-		await interaction.deferReply({ ephemeral: true });
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 		try {
 			const userId = interaction.user.id;
@@ -242,7 +243,7 @@ export class PlaylistCommand {
 		const [interaction] = context;
 		if (!interaction.isChatInputCommand()) return;
 
-		await interaction.deferReply({ ephemeral: true });
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 		try {
 			const userId = interaction.user.id;
