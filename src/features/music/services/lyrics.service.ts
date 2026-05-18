@@ -10,6 +10,16 @@ export interface LyricsResult {
 	thumbnail?: string;
 }
 
+export class LyricsNotFoundError extends Error {
+	constructor(
+		message: string,
+		readonly userMessage: string,
+	) {
+		super(message);
+		this.name = LyricsNotFoundError.name;
+	}
+}
+
 /**
  * Shape of a successful LRCLIB /api/get or /api/search response object
  */
@@ -286,9 +296,7 @@ export class LyricsService {
 
 		if (!Array.isArray(results) || results.length === 0) {
 			this.logger.warn(`No results found for query: "${cleanedQuery}"`);
-			throw new Error(
-				`No results found for "${originalQuery}". Try using a different search term or check the spelling.`,
-			);
+			throw this.createNotFoundError(originalQuery);
 		}
 
 		// Pick first result — LRCLIB returns results ordered by relevance
@@ -324,9 +332,7 @@ export class LyricsService {
 
 					if (!Array.isArray(results) || results.length === 0) {
 						this.logger.warn(`No results found for query: "${query}"`);
-						throw new Error(
-							`No results found for "${originalQuery}". Try using a different search term or check the spelling.`,
-						);
+						throw this.createNotFoundError(originalQuery);
 					}
 
 					const matchedTrack = this.findRelevantTrack(results, metadata);
@@ -334,9 +340,7 @@ export class LyricsService {
 						this.logger.warn(
 							`Rejected ${results.length} LRCLIB result(s) for query "${query}" because none matched "${metadata.trackName}"`,
 						);
-						throw new Error(
-							`No reliable lyrics match found for "${originalQuery}". Try using the \`/lyrics query:\` option with the exact artist and song title.`,
-						);
+						throw this.createUnreliableMatchError(originalQuery);
 					}
 
 					return this.buildResult(matchedTrack);
@@ -347,22 +351,14 @@ export class LyricsService {
 				if (error instanceof Error) {
 					lastError = error;
 
-					if (
-						!error.message.includes('No results found') &&
-						!error.message.includes('No reliable lyrics match found')
-					) {
+					if (!(error instanceof LyricsNotFoundError)) {
 						throw error;
 					}
 				}
 			}
 		}
 
-		throw (
-			lastError ||
-			new Error(
-				`No results found for "${originalQuery}". Try using a different search term or check the spelling.`,
-			)
-		);
+		throw lastError || this.createNotFoundError(originalQuery);
 	}
 
 	/**
@@ -396,6 +392,22 @@ export class LyricsService {
 		}
 	}
 
+	private createNotFoundError(originalQuery: string): LyricsNotFoundError {
+		return new LyricsNotFoundError(
+			`No lyrics found for "${originalQuery}".`,
+			`I could not find lyrics for **${originalQuery}**.`,
+		);
+	}
+
+	private createUnreliableMatchError(
+		originalQuery: string,
+	): LyricsNotFoundError {
+		return new LyricsNotFoundError(
+			`No reliable lyrics match found for "${originalQuery}".`,
+			`I found possible lyrics for **${originalQuery}**, but they did not match the current song closely enough.`,
+		);
+	}
+
 	// ---------------------------------------------------------------------------
 	// Private — Data helpers
 	// ---------------------------------------------------------------------------
@@ -412,7 +424,10 @@ export class LyricsService {
 
 		if (!track.plainLyrics) {
 			this.logger.warn(`Lyrics not available for: "${track.trackName}"`);
-			throw new Error(`Lyrics not available for "${track.trackName}".`);
+			throw new LyricsNotFoundError(
+				`Lyrics not available for "${track.trackName}".`,
+				`Lyrics are not available for **${track.trackName}** yet.`,
+			);
 		}
 
 		this.logger.log(

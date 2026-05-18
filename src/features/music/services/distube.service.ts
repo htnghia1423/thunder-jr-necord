@@ -23,7 +23,7 @@ import {
 } from 'discord.js';
 import { DisTube, Events, Playlist, Queue, Song } from 'distube';
 
-import { LyricsService } from './lyrics.service';
+import { LyricsNotFoundError, LyricsService } from './lyrics.service';
 import { MusicStatsService } from './music-stats.service';
 
 /**
@@ -431,19 +431,19 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 
 			await this.showPaginatedLyrics(interaction, lyricsResult, chunks);
 		} catch (error) {
-			this.logger.error(
-				'Failed to fetch lyrics from Now Playing button',
-				error,
-			);
-
-			let errorMessage = 'Failed to fetch lyrics. Please try again later.';
-			if (
-				error instanceof Error &&
-				(error.message.includes('No results found') ||
-					error.message.includes('not available'))
-			) {
-				errorMessage = `${error.message}\n\n**Tip:** Try the \`/lyrics\` command with a more specific query.`;
+			const isLyricsNotFound = error instanceof LyricsNotFoundError;
+			if (isLyricsNotFound) {
+				this.logger.warn(error.message);
+			} else {
+				this.logger.error(
+					'Failed to fetch lyrics from Now Playing button',
+					error,
+				);
 			}
+
+			const errorMessage = isLyricsNotFound
+				? `${error.userMessage}\n\n**Tip:** Try \`/lyrics query:\` with the exact artist and song title.`
+				: 'Failed to fetch lyrics. Please try again later.';
 
 			const errorEmbed = EmbedBuilderUtils.createErrorEmbed(errorMessage);
 			await interaction.editReply({ embeds: [errorEmbed] });

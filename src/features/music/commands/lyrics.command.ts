@@ -2,7 +2,11 @@ import { MUSIC_COMMAND_METADATA } from '../../utility/constants/command-metadata
 import { PaginationControlsComponent } from '../components/pagination-controls.component';
 import { LyricsDto } from '../dto/lyrics.dto';
 import { DisTubeService } from '../services/distube.service';
-import { LyricsResult, LyricsService } from '../services/lyrics.service';
+import {
+	LyricsNotFoundError,
+	LyricsResult,
+	LyricsService,
+} from '../services/lyrics.service';
 import { MusicService } from '../services/music.service';
 import { EmbedBuilderUtils } from '../utils/embed-builder.utils';
 import { Injectable, Logger } from '@nestjs/common';
@@ -188,6 +192,15 @@ export class LyricsCommand {
 				});
 			});
 		} catch (error) {
+			if (error instanceof LyricsNotFoundError) {
+				this.logger.warn(error.message);
+				const errorEmbed = EmbedBuilderUtils.createErrorEmbed(
+					`${error.userMessage}\n\n**Tip:** Try searching with the exact artist and song title.`,
+				);
+				await interaction.editReply({ embeds: [errorEmbed] });
+				return;
+			}
+
 			this.logger.error('Failed to fetch lyrics', error);
 
 			let errorMessage = '❌ Failed to fetch lyrics. Please try again later.';
