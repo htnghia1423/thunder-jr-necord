@@ -1,6 +1,5 @@
 import { MusicResponse } from '../enums/music.enum';
 import {
-	DuplicateCheckResult,
 	ExtendedQueue,
 	ExtendedSong,
 	toSong,
@@ -80,7 +79,7 @@ export class PlayResultFormatterService {
 		const duplicateCheck = DuplicateUtils.checkDuplicate(
 			toSong(currentSong),
 			toSongArray(songsToCheck),
-		) as DuplicateCheckResult;
+		);
 
 		if (
 			duplicateCheck.isDuplicate &&
