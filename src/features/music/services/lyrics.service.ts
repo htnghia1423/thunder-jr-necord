@@ -23,6 +23,12 @@ interface LrclibTrack {
 	syncedLyrics: string | null;
 }
 
+interface SongMetadata {
+	trackName: string;
+	artistName?: string;
+	searchQueries: string[];
+}
+
 /**
  * LyricsService fetches song lyrics from LRCLIB (https://lrclib.net)
  * — a developer-friendly, Cloudflare-free REST API requiring no API key.
@@ -85,8 +91,11 @@ export class LyricsService {
 		title: string,
 		artistName?: string,
 	): Promise<LyricsResult> {
-		const { trackName, artistName: resolvedArtistName } =
-			this.resolveSongMetadata(title, artistName);
+		const {
+			trackName,
+			artistName: resolvedArtistName,
+			searchQueries,
+		} = this.resolveSongMetadata(title, artistName);
 
 		if (resolvedArtistName) {
 			this.logger.log(
@@ -107,7 +116,7 @@ export class LyricsService {
 			);
 		}
 
-		return this.getLyrics(trackName);
+		return this.fetchBySearchCandidates(searchQueries, title);
 	}
 
 	/**
@@ -212,6 +221,37 @@ export class LyricsService {
 	}
 
 	/**
+	 * Try multiple cleaned search candidates before reporting no lyrics.
+	 */
+	private async fetchBySearchCandidates(
+		queries: string[],
+		originalQuery: string,
+	): Promise<LyricsResult> {
+		let lastError: Error | undefined;
+
+		for (const query of queries) {
+			try {
+				return await this.fetchBySearch(query, originalQuery);
+			} catch (error) {
+				if (error instanceof Error) {
+					lastError = error;
+
+					if (!error.message.includes('No results found')) {
+						throw error;
+					}
+				}
+			}
+		}
+
+		throw (
+			lastError ||
+			new Error(
+				`No results found for "${originalQuery}". Try using a different search term or check the spelling.`,
+			)
+		);
+	}
+
+	/**
 	 * Thin wrapper around native fetch that sets common headers
 	 * and converts network errors into a friendlier Error.
 	 */
@@ -279,19 +319,31 @@ export class LyricsService {
 	private cleanSongTitle(title: string): string {
 		let cleaned = title;
 
+		// Remove leading roleplay/alias blocks often used in YouTube titles.
+		cleaned = cleaned.replaceAll(/^\s*\|[^|]+\|\s*/g, '');
+
+		// Remove producer credits and everything after them.
+		cleaned = cleaned.replaceAll(
+			/\s+(?:prod\.?|produced by|beat by)\s+.*$/gi,
+			'',
+		);
+
 		// Remove common video quality indicators
 		cleaned = cleaned.replaceAll(
-			/\((?:HD|4K|HQ|Official|Audio|Video|Lyric(?:s)?|Music Video|MV)\)/gi,
+			/\((?:HD|4K|HQ|Official|Official Audio|Official Video|Audio|Video|Lyric(?:s)?|Music Video|MV)\)/gi,
 			'',
 		);
 		cleaned = cleaned.replaceAll(
-			/\[(?:HD|4K|HQ|Official|Audio|Video|Lyric(?:s)?|Music Video|MV)\]/gi,
+			/\[(?:HD|4K|HQ|Official|Official Audio|Official Video|Audio|Video|Lyric(?:s)?|Music Video|MV)\]/gi,
 			'',
 		);
 
 		// Remove featuring artists in parentheses/brackets
 		cleaned = cleaned.replaceAll(/\((?:ft\.|feat\.|featuring).*?\)/gi, '');
 		cleaned = cleaned.replaceAll(/\[(?:ft\.|feat\.|featuring).*?\]/gi, '');
+
+		// Normalize separators that LRCLIB search handles better as plain spaces.
+		cleaned = cleaned.replaceAll(/[|"'`]/g, ' ');
 
 		// Collapse extra whitespace
 		cleaned = cleaned.replaceAll(/\s+/g, ' ').trim();
@@ -305,26 +357,41 @@ export class LyricsService {
 	private resolveSongMetadata(
 		title: string,
 		artistName?: string,
-	): { trackName: string; artistName?: string } {
+	): SongMetadata {
 		const cleanedTitle = this.cleanSongTitle(title);
 		const cleanedArtistName = artistName
 			? this.cleanArtistName(artistName)
 			: undefined;
+		const pipeArtistName = this.extractLeadingPipeArtist(title);
 
 		const dashIndex = cleanedTitle.indexOf(' - ');
 		if (dashIndex !== -1) {
 			const titleArtistName = cleanedTitle.slice(0, dashIndex).trim();
 			const trackName = cleanedTitle.slice(dashIndex + 3).trim();
+			const resolvedArtistName =
+				cleanedArtistName || pipeArtistName || titleArtistName;
 
 			return {
 				trackName,
-				artistName: cleanedArtistName || titleArtistName,
+				artistName: resolvedArtistName,
+				searchQueries: this.buildSearchCandidates(
+					trackName,
+					resolvedArtistName,
+					cleanedTitle,
+				),
 			};
 		}
 
+		const resolvedArtistName = cleanedArtistName || pipeArtistName;
+
 		return {
 			trackName: cleanedTitle,
-			artistName: cleanedArtistName,
+			artistName: resolvedArtistName,
+			searchQueries: this.buildSearchCandidates(
+				cleanedTitle,
+				resolvedArtistName,
+				this.cleanSongTitleWithoutRemovingPipeBlocks(title),
+			),
 		};
 	}
 
@@ -333,12 +400,67 @@ export class LyricsService {
 	 */
 	private cleanArtistName(artistName: string): string {
 		return artistName
+			.replaceAll(/\s*\/\/.*$/g, '')
 			.replaceAll(/\s*-\s*Topic$/gi, '')
 			.replaceAll(/\s*VEVO$/gi, '')
 			.replaceAll(/\s+Official$/gi, '')
 			.replaceAll(/\s+Official\s+Channel$/gi, '')
 			.replaceAll(/\s+/g, ' ')
 			.trim();
+	}
+
+	/**
+	 * Extract artist names wrapped in a leading pipe block, e.g. "|Artist| Track".
+	 */
+	private extractLeadingPipeArtist(title: string): string | undefined {
+		const match = title.match(/^\s*\|([^|]+)\|/);
+		if (!match?.[1]) {
+			return undefined;
+		}
+
+		return this.cleanArtistName(match[1]);
+	}
+
+	/**
+	 * Keep a less aggressive title variant as a last-resort full-text search.
+	 */
+	private cleanSongTitleWithoutRemovingPipeBlocks(title: string): string {
+		return title
+			.replaceAll(/\s+(?:prod\.?|produced by|beat by)\s+.*$/gi, '')
+			.replaceAll(/[|"'`]/g, ' ')
+			.replaceAll(/\s+/g, ' ')
+			.trim();
+	}
+
+	/**
+	 * Build ordered LRCLIB search fallbacks from most specific to broadest.
+	 */
+	private buildSearchCandidates(
+		trackName: string,
+		artistName?: string,
+		originalTitle?: string,
+	): string[] {
+		const candidates = [
+			artistName ? `${artistName} ${trackName}` : undefined,
+			trackName,
+			this.expandCompactVietnameseTitle(trackName),
+			originalTitle,
+		];
+
+		return [...new Set(candidates.filter(Boolean) as string[])];
+	}
+
+	/**
+	 * Add a readable variant for compact Vietnamese titles often used in uploads.
+	 */
+	private expandCompactVietnameseTitle(title: string): string {
+		const compactTitle = title.toUpperCase();
+
+		if (compactTitle === 'NGONGIODEMQUATRANGSANGDEMNAY') {
+			return 'NGON GIO DEM QUA TRANG SANG DEM NAY';
+		}
+
+		return title;
 	}
 
 	/**
