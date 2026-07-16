@@ -149,3 +149,5 @@ youtube-cookies.json
 /.opencode
 AGENTS.md
 opencode.json
+/.claude
+CLAUDE.md
