@@ -9,7 +9,7 @@ export class PlayDto {
 		description: 'YouTube URL or search keywords',
 		required: true,
 	})
-	song: string;
+	song!: string;
 }
 
 /**
@@ -23,20 +23,27 @@ export class VolumeDto {
 		min_value: 1,
 		max_value: 100,
 	})
-	level: number;
+	level!: number;
 }
 
 /**
  * DTO for /remove command validation
+ * Supports removal by position OR song name (fuzzy search)
  */
 export class RemoveDto {
 	@NumberOption({
 		name: 'position',
-		description: 'Song position in queue (starting from 1)',
-		required: true,
-		min_value: 1,
+		description: 'Song position in queue (position number)',
+		required: false,
 	})
-	position: number;
+	position?: number;
+
+	@StringOption({
+		name: 'song_name',
+		description: 'Song name to remove (fuzzy search)',
+		required: false,
+	})
+	songName?: string;
 }
 
 /**
@@ -66,5 +73,5 @@ export class SeekDto {
 		required: true,
 		min_value: 0,
 	})
-	seconds: number;
+	seconds!: number;
 }

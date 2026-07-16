@@ -137,3 +137,17 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Credentials & Secrets
+youtube-cookies.json
+
+# Ignore YouTube player debug scripts
+*-player-script.js
+
+/generated/prisma
+/src/generated/prisma
+/.opencode
+AGENTS.md
+opencode.json
+/.claude
+CLAUDE.md

@@ -8,6 +8,7 @@
 	"scripts": {
 		"build": "nest build",
 		"format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+		"prebuild": "prisma generate",
 		"start": "nest start",
 		"start:dev": "nest start --watch",
 		"start:debug": "nest start --debug --watch",
@@ -24,50 +25,57 @@
 		"@discordjs/opus": "^0.10.0",
 		"@distube/soundcloud": "^2.0.4",
 		"@distube/spotify": "^2.0.2",
-		"@distube/youtube": "^1.0.4",
+		"@distube/yt-dlp": "^2.0.1",
 		"@ffmpeg-installer/ffmpeg": "^1.1.0",
-		"@nestjs/common": "^11.0.1",
-		"@nestjs/core": "^11.0.1",
-		"@nestjs/platform-express": "^11.0.1",
-		"@snazzah/davey": "^0.1.6",
-		"distube": "^5.0.7",
+		"@nestjs/common": "^11.1.28",
+		"@nestjs/core": "^11.1.28",
+		"@nestjs/platform-express": "^11.1.28",
+		"@prisma/adapter-pg": "^7.8.0",
+		"@prisma/client": "^7.8.0",
+		"@snazzah/davey": "^0.1.12",
+		"axios": "^1.18.1",
+		"distube": "^5.2.3",
 		"opusscript": "^0.0.8",
+		"pg": "^8.22.0",
 		"reflect-metadata": "^0.2.2",
 		"rxjs": "^7.8.1",
-		"sodium-native": "^5.0.8"
+		"sodium-native": "^5.1.0"
 	},
 	"devDependencies": {
-		"@commitlint/cli": "19.8.1",
-		"@commitlint/config-conventional": "19.8.1",
-		"@eslint/eslintrc": "^3.2.0",
-		"@eslint/js": "^9.18.0",
-		"@nestjs/cli": "^11.0.0",
-		"@nestjs/config": "4.0.2",
-		"@nestjs/schematics": "^11.0.0",
-		"@nestjs/testing": "^11.0.1",
-		"@trivago/prettier-plugin-sort-imports": "5.2.2",
+		"@commitlint/cli": "21.2.1",
+		"@commitlint/config-conventional": "21.2.0",
+		"@eslint/eslintrc": "^3.3.6",
+		"@eslint/js": "^10.0.1",
+		"@nestjs/cli": "^11.0.24",
+		"@nestjs/config": "4.0.4",
+		"@nestjs/schematics": "^11.1.0",
+		"@nestjs/testing": "^11.1.28",
+		"@trivago/prettier-plugin-sort-imports": "6.0.2",
 		"@types/express": "^5.0.0",
 		"@types/jest": "^30.0.0",
 		"@types/node": "^22.10.7",
-		"@types/supertest": "^6.0.2",
-		"discord.js": "14.22.1",
-		"eslint": "^9.18.0",
+		"@types/pg": "^8.20.0",
+		"@types/supertest": "^7.2.1",
+		"discord.js": "14.27.0",
+		"dotenv": "^17.4.2",
+		"eslint": "^10.7.0",
 		"eslint-config-prettier": "^10.0.1",
-		"eslint-plugin-prettier": "^5.2.2",
-		"globals": "^16.0.0",
+		"eslint-plugin-prettier": "^5.5.6",
+		"globals": "^17.7.0",
 		"husky": "9.1.7",
-		"jest": "^30.0.0",
-		"lint-staged": "16.1.5",
-		"necord": "6.9.1",
-		"prettier": "^3.4.2",
+		"jest": "^30.4.2",
+		"lint-staged": "17.0.8",
+		"necord": "6.14.0",
+		"prettier": "^3.9.5",
+		"prisma": "^7.8.0",
 		"source-map-support": "^0.5.21",
 		"supertest": "^7.0.0",
-		"ts-jest": "^29.2.5",
-		"ts-loader": "^9.5.2",
+		"ts-jest": "^29.4.11",
+		"ts-loader": "^9.6.2",
 		"ts-node": "^10.9.2",
 		"tsconfig-paths": "^4.2.0",
 		"typescript": "^5.7.3",
-		"typescript-eslint": "^8.20.0"
+		"typescript-eslint": "^8.64.0"
 	},
 	"jest": {
 		"moduleFileExtensions": [
@@ -80,10 +88,33 @@
 		"transform": {
 			"^.+\\.(t|j)s$": "ts-jest"
 		},
+		"moduleNameMapper": {
+			"^@/(.*)$": "<rootDir>/$1",
+			"^~/(.*)$": "<rootDir>/../$1",
+			"^@test/(.*)$": "<rootDir>/../test/$1"
+		},
 		"collectCoverageFrom": [
 			"**/*.(t|j)s"
 		],
 		"coverageDirectory": "../coverage",
 		"testEnvironment": "node"
+	},
+	"pnpm": {
+		"overrides": {
+			"@hono/node-server": "1.19.13",
+			"fast-uri": "3.1.2",
+			"tar": "7.5.20",
+			"undici@6": "6.27.0"
+		},
+		"patchedDependencies": {
+			"@distube/yt-dlp@2.0.1": "patches/@distube__yt-dlp@2.0.1.patch"
+		},
+		"onlyBuiltDependencies": [
+			"@discordjs/opus",
+			"@distube/yt-dlp",
+			"@prisma/engines",
+			"ffmpeg-static",
+			"prisma"
+		]
 	}
 }

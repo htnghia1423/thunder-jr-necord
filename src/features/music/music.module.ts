@@ -2,17 +2,30 @@ import { Module } from '@nestjs/common';
 
 // Commands
 import { LoopCommand } from './commands/loop.command';
+import { LyricsCommand } from './commands/lyrics.command';
 import { NowPlayingCommand } from './commands/nowplaying.command';
 import { PlayCommand } from './commands/play.command';
+import { PlaylistCommand } from './commands/playlist.command';
 import { QueueCommand } from './commands/queue.command';
 import { RemoveCommand } from './commands/remove.command';
 import { ShuffleCommand } from './commands/shuffle.command';
 import { SkipCommand } from './commands/skip.command';
+import { StatsCommand } from './commands/stats.command';
 import { StopCommand } from './commands/stop.command';
 import { VolumeCommand } from './commands/volume.command';
 // Services
+import { AudioControlService } from './services/audio-control.service';
 import { DisTubeService } from './services/distube.service';
+import { LyricsService } from './services/lyrics.service';
+import { MusicStatsService } from './services/music-stats.service';
 import { MusicService } from './services/music.service';
+import { PlayMusicService } from './services/play-music.service';
+import { PlayResultFormatterService } from './services/play-result-formatter.service';
+import { PlaylistDuplicateService } from './services/playlist-duplicate.service';
+import { PlaylistOptimizationService } from './services/playlist-optimization.service';
+import { PlaylistStorageService } from './services/playlist-storage.service';
+import { QueueManagementService } from './services/queue-management.service';
+import { YoutubeApiService } from './services/youtube-api.service';
 
 /**
  * MusicModule encapsulates all music-related functionality
@@ -27,6 +40,16 @@ import { MusicService } from './services/music.service';
 	providers: [
 		// Services (order matters for dependency injection)
 		DisTubeService,
+		AudioControlService,
+		QueueManagementService,
+		PlaylistDuplicateService,
+		PlaylistOptimizationService,
+		PlaylistStorageService,
+		MusicStatsService,
+		PlayResultFormatterService,
+		YoutubeApiService,
+		LyricsService,
+		PlayMusicService,
 		MusicService,
 
 		// Commands
@@ -39,6 +62,9 @@ import { MusicService } from './services/music.service';
 		VolumeCommand,
 		LoopCommand,
 		ShuffleCommand,
+		PlaylistCommand,
+		StatsCommand,
+		LyricsCommand,
 	],
 	exports: [MusicService, DisTubeService], // Make services available across the app
 })

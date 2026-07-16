@@ -6,7 +6,7 @@ export class DiscordUtils {
 	 * Escape Discord markdown characters to prevent formatting issues
 	 */
 	static escapeMarkdown(text: string): string {
-		return text.replace(/([*_~`|\\])/g, '\\$1');
+		return text.replaceAll(/([*_~`|\\])/g, String.raw`\$1`);
 	}
 
 	/**

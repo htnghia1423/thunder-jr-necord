@@ -1,30 +1,9 @@
 import { MUSIC_COMMAND_METADATA } from '../../utility/constants/command-metadata';
+import { RemoveDto } from '../dto/music.dto';
 import { MusicService } from '../services/music.service';
 import { Injectable } from '@nestjs/common';
-import {
-	Context,
-	NumberOption,
-	Options,
-	SlashCommand,
-	StringOption,
-} from 'necord';
+import { Context, Options, SlashCommand } from 'necord';
 import type { SlashCommandContext } from 'necord';
-
-export class RemoveDto {
-	@NumberOption({
-		name: 'position',
-		description: 'Song position in queue (position number)',
-		required: false,
-	})
-	position?: number;
-
-	@StringOption({
-		name: 'song_name',
-		description: 'Song name to remove (fuzzy search)',
-		required: false,
-	})
-	songName?: string;
-}
 
 @Injectable()
 export class RemoveCommand {
