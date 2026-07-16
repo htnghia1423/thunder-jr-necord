@@ -342,24 +342,30 @@ describe('DisTubeService.attachPlaybackControls', () => {
 });
 
 describe('DisTubeService.onModuleDestroy', () => {
-	it('stops every active queue, leaves each voice channel and removes listeners', () => {
+	it('stops every active queue, leaves each voice channel and removes listeners', async () => {
 		const { service } = buildService();
-		const q1 = { id: 'g1', stop: jest.fn() };
-		const q2 = { id: 'g2', stop: jest.fn() };
+		const q1 = { id: 'g1', stop: jest.fn().mockResolvedValue(undefined) };
+		const q2 = { id: 'g2', stop: jest.fn().mockResolvedValue(undefined) };
 		const leave = jest.fn();
 		const removeAllListeners = jest.fn();
 		(service as any).distube = {
-			voices: {
+			queues: {
 				collection: new Map([
 					['g1', q1],
 					['g2', q2],
+				]),
+			},
+			voices: {
+				collection: new Map([
+					['g1', { id: 'g1' }],
+					['g2', { id: 'g2' }],
 				]),
 				leave,
 			},
 			removeAllListeners,
 		};
 
-		service.onModuleDestroy();
+		await service.onModuleDestroy();
 
 		expect(q1.stop).toHaveBeenCalledTimes(1);
 		expect(q2.stop).toHaveBeenCalledTimes(1);
@@ -368,29 +374,31 @@ describe('DisTubeService.onModuleDestroy', () => {
 		expect(removeAllListeners).toHaveBeenCalledTimes(1);
 	});
 
-	it('continues cleanup even when stopping one queue throws', () => {
+	it('continues cleanup even when stopping one queue rejects', async () => {
 		const { service } = buildService();
 		const q1 = {
 			id: 'g1',
-			stop: jest.fn(() => {
-				throw new Error('boom');
-			}),
+			stop: jest.fn().mockRejectedValue(new Error('boom')),
 		};
-		const q2 = { id: 'g2', stop: jest.fn() };
+		const q2 = { id: 'g2', stop: jest.fn().mockResolvedValue(undefined) };
 		const leave = jest.fn();
 		const removeAllListeners = jest.fn();
 		(service as any).distube = {
-			voices: {
+			queues: {
 				collection: new Map([
 					['g1', q1],
 					['g2', q2],
 				]),
+			},
+			voices: {
+				collection: new Map([['g2', { id: 'g2' }]]),
 				leave,
 			},
 			removeAllListeners,
 		};
 
-		expect(() => service.onModuleDestroy()).not.toThrow();
+		await expect(service.onModuleDestroy()).resolves.toBeUndefined();
+		expect(q1.stop).toHaveBeenCalledTimes(1);
 		expect(q2.stop).toHaveBeenCalledTimes(1);
 		expect(removeAllListeners).toHaveBeenCalledTimes(1);
 	});

@@ -19,8 +19,19 @@ export class AudioControlService {
 	 * Create a progress bar for now playing
 	 */
 	createProgressBar(currentTime: number, totalTime: number): string {
-		const progress = Math.round((currentTime / totalTime) * 10);
-		const emptyProgress = 10 - progress;
+		const BAR_LENGTH = 10;
+
+		// Clamp the ratio to [0, 1] and guard a zero/invalid total so a negative
+		// or non-finite segment count cannot throw in String.prototype.repeat.
+		const ratio =
+			Number.isFinite(currentTime) &&
+			Number.isFinite(totalTime) &&
+			totalTime > 0
+				? Math.min(Math.max(currentTime / totalTime, 0), 1)
+				: 0;
+
+		const progress = Math.round(ratio * BAR_LENGTH);
+		const emptyProgress = BAR_LENGTH - progress;
 
 		const progressChars = '▓'.repeat(progress);
 		const emptyProgressChars = '░'.repeat(emptyProgress);

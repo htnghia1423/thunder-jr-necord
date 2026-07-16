@@ -391,6 +391,17 @@ export class QueueManagementService {
 					method = 'name';
 				}
 
+				// Neither a valid position nor a matching name resolved a target
+				// (e.g. empty options, or position: 0 which is not a valid 1-based
+				// position). Guard before splice so we never remove the wrong song.
+				if (removeIndex < 0 || !songToRemove) {
+					resolve({
+						success: false,
+						message: 'Please specify a valid position or song name to remove.',
+					});
+					return;
+				}
+
 				// Cannot remove currently playing song (index 0)
 				if (removeIndex === 0) {
 					resolve({

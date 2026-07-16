@@ -57,6 +57,16 @@ describe('AudioControlService', () => {
 			// 25 / 100 * 10 = 2.5 -> Math.round -> 3 filled segments
 			expect(service.createProgressBar(25, 100)).toBe('▓▓▓░░░░░░░');
 		});
+
+		it('renders an empty bar without throwing when total time is zero', () => {
+			expect(() => service.createProgressBar(30, 0)).not.toThrow();
+			expect(service.createProgressBar(30, 0)).toBe('░░░░░░░░░░');
+		});
+
+		it('clamps to a full bar without throwing when current exceeds total', () => {
+			expect(() => service.createProgressBar(150, 100)).not.toThrow();
+			expect(service.createProgressBar(150, 100)).toBe('▓▓▓▓▓▓▓▓▓▓');
+		});
 	});
 
 	describe('setVolume', () => {

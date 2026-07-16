@@ -213,6 +213,15 @@ describe('EmbedBuilderUtils.createProgressBar', () => {
 
 		expect(bar).toBe(`[${'█'.repeat(5)}${'░'.repeat(15)}] 25%`);
 	});
+
+	it('clamps to 100% without throwing when current exceeds total', () => {
+		expect(() =>
+			EmbedBuilderUtils.createProgressBar(150, 100, 10),
+		).not.toThrow();
+		expect(EmbedBuilderUtils.createProgressBar(150, 100, 10)).toBe(
+			'[██████████] 100%',
+		);
+	});
 });
 
 describe('EmbedBuilderUtils playlist embeds', () => {

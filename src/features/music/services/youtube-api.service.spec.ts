@@ -289,9 +289,9 @@ describe('YoutubeApiService', () => {
 			expect(result).toBeNull();
 		});
 
-		it('returns an empty array when the durations request fails (all videos filtered)', async () => {
-			// Documents current behaviour: a failed /videos batch is swallowed,
-			// leaving an empty duration map so every song is treated as deleted.
+		it('returns null when the durations lookup fails for every video', async () => {
+			// A total durations failure must be distinguishable from an empty
+			// playlist, so the method returns null rather than an empty array.
 			mockedGet.mockImplementation((url: string) => {
 				if (url.endsWith('/playlistItems')) {
 					return Promise.resolve({
@@ -306,7 +306,48 @@ describe('YoutubeApiService', () => {
 
 			const result = await service.getPlaylistItems(PLAYLIST_URL);
 
-			expect(result).toEqual([]);
+			expect(result).toBeNull();
+		});
+
+		it('keeps songs (duration 0) when only some duration batches fail', async () => {
+			const ids = Array.from({ length: 60 }, (_, i) => `v${i}`);
+			let videoCall = 0;
+			mockedGet.mockImplementation(
+				(url: string, config: { params?: any } = {}) => {
+					if (url.endsWith('/playlistItems')) {
+						return Promise.resolve({
+							data: {
+								items: ids.map((id) => playlistItem({ id })),
+								nextPageToken: undefined,
+							},
+						});
+					}
+					if (url.endsWith('/videos')) {
+						videoCall += 1;
+						// Fail only the second batch (ids v50..v59).
+						if (videoCall === 2) {
+							return Promise.reject(new Error('second batch down'));
+						}
+						const chunkIds = String(config.params.id).split(',');
+						return Promise.resolve({
+							data: {
+								items: chunkIds.map((id) => ({
+									id,
+									contentDetails: { duration: 'PT30S' },
+								})),
+							},
+						});
+					}
+					return Promise.reject(new Error(`unexpected url: ${url}`));
+				},
+			);
+
+			const result = await service.getPlaylistItems(PLAYLIST_URL);
+
+			// Nothing is dropped on a transient batch failure.
+			expect(result).toHaveLength(60);
+			const unknown = result!.filter((item) => item.duration === 0);
+			expect(unknown).toHaveLength(10);
 		});
 	});
 });

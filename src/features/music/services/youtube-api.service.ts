@@ -49,8 +49,9 @@ export class YoutubeApiService {
 	private async getVideoDurations(
 		videoIds: string[],
 		apiKey: string,
-	): Promise<Record<string, number>> {
+	): Promise<{ durations: Record<string, number>; failedIds: Set<string> }> {
 		const durationMap: Record<string, number> = {};
+		const failedIds = new Set<string>();
 
 		// Chunk into batches of 50
 		const chunks: string[][] = [];
@@ -90,14 +91,18 @@ export class YoutubeApiService {
 				this.logger.error(
 					`Failed to fetch duration batch: ${error instanceof Error ? error.message : 'Unknown error'}`,
 				);
-				// Continue with other batches even if one fails
+				// Remember which videos we could not resolve so callers can tell a
+				// failed lookup apart from a genuinely deleted/private video.
+				for (const id of chunk) {
+					failedIds.add(id);
+				}
 			}
 		}
 
 		this.logger.log(
 			`Successfully fetched ${Object.keys(durationMap).length} durations`,
 		);
-		return durationMap;
+		return { durations: durationMap, failedIds };
 	}
 
 	async getPlaylistItems(
@@ -173,18 +178,46 @@ export class YoutubeApiService {
 
 			// Batch-fetch durations for all videos
 			const videoIds = videoItems.map((item) => item.id);
-			const durationMap = await this.getVideoDurations(videoIds, apiKey);
+			const { durations, failedIds } = await this.getVideoDurations(
+				videoIds,
+				apiKey,
+			);
 
-			// Filter out deleted/private videos and map durations
+			// If every duration lookup failed, treat the whole operation as a
+			// failure (return null) instead of silently returning an empty list
+			// that is indistinguishable from an empty playlist.
+			if (
+				videoItems.length > 0 &&
+				Object.keys(durations).length === 0 &&
+				failedIds.size > 0
+			) {
+				this.logger.error(
+					'All duration lookups failed; aborting to avoid dropping the entire playlist',
+				);
+				return null;
+			}
+
+			// Map durations, keeping videos whose lookup failed (unknown duration)
+			// and dropping only those genuinely absent from a successful response.
 			const validVideoItems = videoItems.filter((item) => {
-				if (durationMap[item.id] === undefined) {
-					this.logger.warn(
-						`Removing deleted/private video from playlist: ${item.id} (${item.name})`,
-					);
-					return false;
+				const duration = durations[item.id];
+				if (duration !== undefined) {
+					item.duration = duration;
+					return true;
 				}
-				item.duration = durationMap[item.id];
-				return true;
+
+				if (failedIds.has(item.id)) {
+					this.logger.warn(
+						`Keeping video with unknown duration (lookup failed): ${item.id} (${item.name})`,
+					);
+					item.duration = 0;
+					return true;
+				}
+
+				this.logger.warn(
+					`Removing deleted/private video from playlist: ${item.id} (${item.name})`,
+				);
+				return false;
 			});
 
 			this.logger.log(

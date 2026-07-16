@@ -277,9 +277,11 @@ export class EmbedBuilderUtils {
 			return `[${MusicConstants.PROGRESS_BAR_EMPTY_CHAR.repeat(length)}] ${MusicConstants.DEFAULT_PROGRESS_PERCENTAGE}%`;
 		}
 
-		// Calculate percentage and filled characters
-		const percentage = Math.min((current / total) * 100, 100);
-		const filled = Math.floor((current / total) * length);
+		// Clamp the ratio to [0, 1] so current > total cannot produce a negative
+		// "empty" count (which would throw in String.prototype.repeat).
+		const ratio = Math.min(current / total, 1);
+		const percentage = ratio * 100;
+		const filled = Math.min(Math.floor(ratio * length), length);
 		const empty = length - filled;
 
 		// Build progress bar

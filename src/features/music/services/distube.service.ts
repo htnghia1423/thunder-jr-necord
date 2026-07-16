@@ -46,25 +46,29 @@ export class DisTubeService implements OnModuleInit, OnModuleDestroy {
 		this.setupEventHandlers();
 	}
 
-	onModuleDestroy() {
+	async onModuleDestroy(): Promise<void> {
 		this.logger.log('Starting DisTube cleanup...');
 
 		try {
-			// Stop all active queues
-			this.distube.voices.collection.forEach((queue) => {
-				try {
-					queue.stop();
-					this.logger.log(`Stopped queue for guild ${queue.id}`);
-				} catch (error) {
-					this.logger.error(
-						`Failed to stop queue for guild ${queue.id}`,
-						error,
-					);
-				}
-			});
+			// Stop and delete every active queue. Queue.stop() is async and lives
+			// on distube.queues — voices.collection holds DisTubeVoice, not Queue.
+			// Snapshot to an array first because stop() mutates the collection.
+			await Promise.all(
+				[...this.distube.queues.collection.values()].map(async (queue) => {
+					try {
+						await queue.stop();
+						this.logger.log(`Stopped queue for guild ${queue.id}`);
+					} catch (error) {
+						this.logger.error(
+							`Failed to stop queue for guild ${queue.id}`,
+							error,
+						);
+					}
+				}),
+			);
 
-			// Leave all voice channels
-			this.distube.voices.collection.forEach((voice) => {
+			// Leave any voice connection that is still open.
+			[...this.distube.voices.collection.values()].forEach((voice) => {
 				try {
 					this.distube.voices.leave(voice.id);
 					this.logger.log(`Left voice channel in guild ${voice.id}`);

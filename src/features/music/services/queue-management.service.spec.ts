@@ -418,6 +418,32 @@ describe('QueueManagementService', () => {
 			expect(result.message).toContain('Cannot remove currently playing song');
 			expect(queue.songs).toHaveLength(2);
 		});
+
+		it('rejects removal when neither a valid position nor a name is given', async () => {
+			const queue = {
+				songs: [song({ name: 'First' }), song({ name: 'Second' })],
+			};
+			mockDistube.getQueue.mockReturnValue(queue);
+
+			const result = await service.removeSong(createMockInteraction(), {});
+
+			expect(result.success).toBe(false);
+			expect(queue.songs).toHaveLength(2);
+		});
+
+		it('treats position 0 as invalid without dropping the last song', async () => {
+			const queue = {
+				songs: [song({ name: 'First' }), song({ name: 'Second' })],
+			};
+			mockDistube.getQueue.mockReturnValue(queue);
+
+			const result = await service.removeSong(createMockInteraction(), {
+				position: 0,
+			});
+
+			expect(result.success).toBe(false);
+			expect(queue.songs).toHaveLength(2);
+		});
 	});
 
 	describe('shuffle', () => {
