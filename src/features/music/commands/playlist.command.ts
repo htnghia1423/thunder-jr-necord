@@ -2,6 +2,7 @@ import {
 	PlaylistDeleteDto,
 	PlaylistLoadDto,
 	PlaylistSaveDto,
+	type SavedPlaylist,
 } from '../dto/playlist.dto';
 import { MusicResponse } from '../enums/music.enum';
 import { DisTubeService } from '../services/distube.service';
@@ -11,6 +12,7 @@ import { EmbedBuilderUtils } from '../utils/embed-builder.utils';
 import { MusicValidationUtils } from '../utils/music-validation.utils';
 import { Injectable, Logger } from '@nestjs/common';
 import { MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction } from 'discord.js';
 import type { SlashCommandContext } from 'necord';
 import {
 	Context,
@@ -162,47 +164,14 @@ export class PlaylistCommand {
 			);
 			await interaction.editReply({ embeds: [loadingEmbed] });
 
-			let loadedCount = 0;
-			let failedCount = 0;
 			const totalSongs = playlist.songs.length;
 
 			// Load songs into the queue sequentially
-			for (const [index, song] of playlist.songs.entries()) {
-				try {
-					const result = await this.musicService.play(interaction, song.url);
-					if (result.success) {
-						loadedCount++;
-					} else {
-						failedCount++;
-						this.logger.warn(
-							`Failed to load song "${song.title}" from playlist "${name}": ${result.message}`,
-						);
-					}
-
-					if (
-						index === totalSongs - 1 ||
-						loadedCount + failedCount === 1 ||
-						(loadedCount + failedCount) % 5 === 0
-					) {
-						await interaction.editReply({
-							content:
-								`Loading **${name}**...\n` +
-								`Loaded: **${loadedCount}/${totalSongs}**` +
-								(failedCount > 0 ? `\nFailed: **${failedCount}**` : ''),
-							embeds: [],
-						});
-					}
-
-					// Small delay between songs to avoid rate limiting
-					await new Promise((resolve) => setTimeout(resolve, 500));
-				} catch (error) {
-					failedCount++;
-					this.logger.warn(
-						`Failed to load song "${song.title}" from playlist "${name}": ${String(error)}`,
-					);
-					// Continue loading other songs even if one fails
-				}
-			}
+			const { loadedCount, failedCount } = await this.loadSongsIntoQueue(
+				interaction,
+				name,
+				playlist.songs,
+			);
 
 			await interaction.editReply({
 				content:
@@ -313,5 +282,58 @@ export class PlaylistCommand {
 			);
 			await interaction.editReply({ embeds: [errorEmbed] });
 		}
+	}
+
+	/**
+	 * Loads each song into the queue sequentially, editing the reply with
+	 * progress and tolerating individual failures. Returns the load tally.
+	 */
+	private async loadSongsIntoQueue(
+		interaction: ChatInputCommandInteraction,
+		name: string,
+		songs: SavedPlaylist['songs'],
+	): Promise<{ loadedCount: number; failedCount: number }> {
+		let loadedCount = 0;
+		let failedCount = 0;
+		const totalSongs = songs.length;
+
+		for (const [index, song] of songs.entries()) {
+			try {
+				const result = await this.musicService.play(interaction, song.url);
+				if (result.success) {
+					loadedCount++;
+				} else {
+					failedCount++;
+					this.logger.warn(
+						`Failed to load song "${song.title}" from playlist "${name}": ${result.message}`,
+					);
+				}
+
+				if (
+					index === totalSongs - 1 ||
+					loadedCount + failedCount === 1 ||
+					(loadedCount + failedCount) % 5 === 0
+				) {
+					await interaction.editReply({
+						content:
+							`Loading **${name}**...\n` +
+							`Loaded: **${loadedCount}/${totalSongs}**` +
+							(failedCount > 0 ? `\nFailed: **${failedCount}**` : ''),
+						embeds: [],
+					});
+				}
+
+				// Small delay between songs to avoid rate limiting
+				await new Promise((resolve) => setTimeout(resolve, 500));
+			} catch (error) {
+				failedCount++;
+				this.logger.warn(
+					`Failed to load song "${song.title}" from playlist "${name}": ${String(error)}`,
+				);
+				// Continue loading other songs even if one fails
+			}
+		}
+
+		return { loadedCount, failedCount };
 	}
 }
