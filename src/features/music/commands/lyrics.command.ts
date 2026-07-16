@@ -11,6 +11,7 @@ import { MusicService } from '../services/music.service';
 import { EmbedBuilderUtils } from '../utils/embed-builder.utils';
 import { Injectable, Logger } from '@nestjs/common';
 import { ComponentType } from 'discord.js';
+import type { ChatInputCommandInteraction } from 'discord.js';
 import { Context, Options, SlashCommand } from 'necord';
 import type { SlashCommandContext } from 'necord';
 
@@ -49,47 +50,10 @@ export class LyricsCommand {
 		await interaction.deferReply();
 
 		try {
-			// Determine search query or current song metadata
-			let lyricsResult: LyricsResult;
-
-			// If no query provided, try to get current playing song
-			if (dto.query) {
-				lyricsResult = await this.lyricsService.getLyrics(dto.query);
-			} else {
-				this.logger.log(
-					'No query provided, attempting to auto-detect current song',
-				);
-
-				const validation =
-					this.musicService.validateGuildAndGetQueue(interaction);
-
-				if (!validation.success) {
-					const errorEmbed = EmbedBuilderUtils.createErrorEmbed(
-						'❌ No song is currently playing. Please provide a song name using the `query` parameter.\n\n**Example:** `/lyrics query: Bohemian Rhapsody`',
-					);
-					await interaction.editReply({ embeds: [errorEmbed] });
-					return;
-				}
-
-				const { queue } = validation;
-				const currentSong = queue.songs[0];
-
-				if (!currentSong || !currentSong.name) {
-					const errorEmbed = EmbedBuilderUtils.createErrorEmbed(
-						'❌ Could not detect current song. Please provide a song name using the `query` parameter.',
-					);
-					await interaction.editReply({ embeds: [errorEmbed] });
-					return;
-				}
-
-				lyricsResult = await this.lyricsService.getLyricsForSong(
-					currentSong.name,
-					currentSong.uploader?.name,
-				);
-				this.logger.log(
-					`Auto-detected song: "${currentSong.uploader?.name || 'Unknown artist'} - ${currentSong.name}"`,
-				);
-			}
+			// Determine search query or current song metadata.
+			// A null result means an error embed was already sent to the user.
+			const lyricsResult = await this.resolveLyricsResult(interaction, dto);
+			if (!lyricsResult) return;
 
 			// Split lyrics into chunks for pagination
 			const chunks = this.lyricsService.splitLyricsIntoChunks(
@@ -218,5 +182,51 @@ export class LyricsCommand {
 			const errorEmbed = EmbedBuilderUtils.createErrorEmbed(errorMessage);
 			await interaction.editReply({ embeds: [errorEmbed] });
 		}
+	}
+
+	/**
+	 * Resolves lyrics from the provided query, or auto-detects the current song.
+	 * Returns null (after sending an error embed) when no song can be determined.
+	 */
+	private async resolveLyricsResult(
+		interaction: ChatInputCommandInteraction,
+		dto: LyricsDto,
+	): Promise<LyricsResult | null> {
+		if (dto.query) {
+			return this.lyricsService.getLyrics(dto.query);
+		}
+
+		this.logger.log(
+			'No query provided, attempting to auto-detect current song',
+		);
+
+		const validation = this.musicService.validateGuildAndGetQueue(interaction);
+
+		if (!validation.success) {
+			const errorEmbed = EmbedBuilderUtils.createErrorEmbed(
+				'❌ No song is currently playing. Please provide a song name using the `query` parameter.\n\n**Example:** `/lyrics query: Bohemian Rhapsody`',
+			);
+			await interaction.editReply({ embeds: [errorEmbed] });
+			return null;
+		}
+
+		const currentSong = validation.queue.songs[0];
+
+		if (!currentSong?.name) {
+			const errorEmbed = EmbedBuilderUtils.createErrorEmbed(
+				'❌ Could not detect current song. Please provide a song name using the `query` parameter.',
+			);
+			await interaction.editReply({ embeds: [errorEmbed] });
+			return null;
+		}
+
+		const lyricsResult = await this.lyricsService.getLyricsForSong(
+			currentSong.name,
+			currentSong.uploader?.name,
+		);
+		this.logger.log(
+			`Auto-detected song: "${currentSong.uploader?.name || 'Unknown artist'} - ${currentSong.name}"`,
+		);
+		return lyricsResult;
 	}
 }
