@@ -14,6 +14,7 @@ module.exports = {
 				'delete',
 				'chore',
 				'test',
+				'ci',
 			],
 		],
 		'header-max-length': [2, 'always', 200],
