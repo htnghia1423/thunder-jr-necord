@@ -46,7 +46,7 @@ describe('NowPlayingCommand', () => {
 	beforeEach(() => {
 		musicService = { validateGuildAndGetQueue: jest.fn() };
 		disTubeService = { attachPlaybackControls: jest.fn() };
-		command = new NowPlayingCommand(musicService as any, disTubeService as any);
+		command = new NowPlayingCommand(musicService, disTubeService);
 	});
 
 	it('replies with an error embed and does not attach controls when there is no queue', async () => {

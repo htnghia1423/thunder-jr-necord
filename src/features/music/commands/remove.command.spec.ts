@@ -13,7 +13,7 @@ describe('RemoveCommand', () => {
 		const { command, musicService } = createCommand();
 		const interaction = createMockInteraction();
 
-		await command.execute([interaction] as any, {} as any);
+		await command.execute([interaction] as any, {});
 
 		expect(interaction.deferReply).toHaveBeenCalledTimes(1);
 		expect(musicService.removeSong).not.toHaveBeenCalled();
@@ -36,7 +36,7 @@ describe('RemoveCommand', () => {
 		});
 		const interaction = createMockInteraction({ userId: 'user-42' });
 
-		await command.execute([interaction] as any, { position: 3 } as any);
+		await command.execute([interaction] as any, { position: 3 });
 
 		expect(musicService.removeSong).toHaveBeenCalledWith(interaction, {
 			position: 3,
@@ -57,10 +57,7 @@ describe('RemoveCommand', () => {
 		});
 		const interaction = createMockInteraction();
 
-		await command.execute(
-			[interaction] as any,
-			{ songName: 'bohemian' } as any,
-		);
+		await command.execute([interaction] as any, { songName: 'bohemian' });
 
 		expect(musicService.removeSong).toHaveBeenCalledWith(interaction, {
 			songName: 'bohemian',
@@ -79,7 +76,7 @@ describe('RemoveCommand', () => {
 		});
 		const interaction = createMockInteraction();
 
-		await command.execute([interaction] as any, { position: 99 } as any);
+		await command.execute([interaction] as any, { position: 99 });
 
 		expect(interaction.editReply).toHaveBeenCalledWith({
 			content: '❌ **Position 99 is out of range**',

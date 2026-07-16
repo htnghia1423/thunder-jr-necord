@@ -375,7 +375,9 @@ export class LyricsService {
 			});
 		} catch (error) {
 			this.logger.error(`Network error reaching LRCLIB: ${url}`, error);
-			throw new Error('Failed to fetch lyrics. Please try again later.');
+			throw new Error('Failed to fetch lyrics. Please try again later.', {
+				cause: error,
+			});
 		}
 	}
 

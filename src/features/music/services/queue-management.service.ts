@@ -419,7 +419,7 @@ export class QueueManagementService {
 					success: true,
 					message: 'Song removed from queue.',
 					data: {
-						songName: (songToRemove?.name as string) || 'Unknown',
+						songName: songToRemove?.name || 'Unknown',
 						position: removeIndex + 1, // Convert back to 1-based
 						method,
 					},

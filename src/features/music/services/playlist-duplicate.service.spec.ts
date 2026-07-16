@@ -301,7 +301,7 @@ describe('PlaylistDuplicateService', () => {
 			const sentinel = { success: true, message: 'from-choice', data: {} };
 			const choiceSpy = jest
 				.spyOn(service, 'handlePlaylistDuplicateChoice')
-				.mockResolvedValue(sentinel as any);
+				.mockResolvedValue(sentinel);
 			const interaction = createMockInteraction();
 			const resolve = jest.fn();
 

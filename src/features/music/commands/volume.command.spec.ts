@@ -23,7 +23,7 @@ describe('VolumeCommand', () => {
 		});
 		const interaction = makeInteraction();
 
-		await command.execute([interaction] as any, { level: 75 } as any);
+		await command.execute([interaction] as any, { level: 75 });
 
 		expect(interaction.deferReply).toHaveBeenCalledTimes(1);
 		expect(musicService.setVolume).toHaveBeenCalledTimes(1);
@@ -38,7 +38,7 @@ describe('VolumeCommand', () => {
 		musicService.setVolume.mockResolvedValue({ success: true, message: 'ok' });
 		const interaction = makeInteraction();
 
-		await command.execute([interaction] as any, { level: 1 } as any);
+		await command.execute([interaction] as any, { level: 1 });
 
 		expect(musicService.setVolume).toHaveBeenCalledWith(interaction, 1);
 	});
@@ -51,7 +51,7 @@ describe('VolumeCommand', () => {
 		});
 		const interaction = makeInteraction();
 
-		await command.execute([interaction] as any, { level: 50 } as any);
+		await command.execute([interaction] as any, { level: 50 });
 
 		expect(interaction.editReply).toHaveBeenCalledWith({
 			content: '❌ You must be in a voice channel',
@@ -63,7 +63,7 @@ describe('VolumeCommand', () => {
 		const interaction = makeInteraction();
 		interaction.isChatInputCommand.mockReturnValue(false);
 
-		await command.execute([interaction] as any, { level: 50 } as any);
+		await command.execute([interaction] as any, { level: 50 });
 
 		expect(interaction.deferReply).not.toHaveBeenCalled();
 		expect(musicService.setVolume).not.toHaveBeenCalled();

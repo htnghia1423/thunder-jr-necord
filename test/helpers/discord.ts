@@ -1,5 +1,3 @@
-import { MessageFlags } from 'discord.js';
-
 export interface MockInteractionOptions {
 	userId?: string;
 	userTag?: string;
@@ -18,7 +16,9 @@ export interface MockInteractionOptions {
  * Returned as `any` on purpose — a full ChatInputCommandInteraction has a huge
  * surface we do not need for unit tests.
  */
-export function createMockInteraction(options: MockInteractionOptions = {}): any {
+export function createMockInteraction(
+	options: MockInteractionOptions = {},
+): any {
 	const {
 		userId = 'user-1',
 		userTag = 'tester#0001',

@@ -113,9 +113,7 @@ describe('PlaylistInteractionUtils.waitForUserChoice', () => {
 		const interaction = createMockInteraction();
 		interaction.followUp = jest.fn().mockResolvedValue(response);
 
-		const pending = PlaylistInteractionUtils.waitForUserChoice(
-			interaction as any,
-		);
+		const pending = PlaylistInteractionUtils.waitForUserChoice(interaction);
 		await flush();
 
 		expect(interaction.followUp).toHaveBeenCalledTimes(1);
@@ -142,7 +140,7 @@ describe('PlaylistInteractionUtils.waitForUserChoice', () => {
 		interaction.followUp = jest.fn().mockResolvedValue(response);
 
 		const pending = PlaylistInteractionUtils.waitForUserChoice(
-			interaction as any,
+			interaction,
 			12345,
 		);
 		await flush();
@@ -170,9 +168,7 @@ describe('PlaylistInteractionUtils.waitForUserChoice', () => {
 		const interaction = createMockInteraction();
 		interaction.followUp = jest.fn().mockResolvedValue(response);
 
-		const pending = PlaylistInteractionUtils.waitForUserChoice(
-			interaction as any,
-		);
+		const pending = PlaylistInteractionUtils.waitForUserChoice(interaction);
 		await flush();
 
 		collector.emit('end');
@@ -189,9 +185,7 @@ describe('PlaylistInteractionUtils.waitForUserChoice', () => {
 		const interaction = createMockInteraction();
 		interaction.followUp = jest.fn().mockResolvedValue(response);
 
-		const pending = PlaylistInteractionUtils.waitForUserChoice(
-			interaction as any,
-		);
+		const pending = PlaylistInteractionUtils.waitForUserChoice(interaction);
 		await flush();
 
 		const button = makeButton(
@@ -214,9 +208,7 @@ describe('PlaylistInteractionUtils.waitForUserChoice', () => {
 		const interaction = createMockInteraction();
 		interaction.followUp = jest.fn().mockResolvedValue(response);
 
-		const pending = PlaylistInteractionUtils.waitForUserChoice(
-			interaction as any,
-		);
+		const pending = PlaylistInteractionUtils.waitForUserChoice(interaction);
 		await flush();
 
 		const button = makeButton(
@@ -240,7 +232,7 @@ describe('PlaylistInteractionUtils.waitForUserChoice', () => {
 			.mockRejectedValue(new Error('missing permissions'));
 
 		await expect(
-			PlaylistInteractionUtils.waitForUserChoice(interaction as any),
+			PlaylistInteractionUtils.waitForUserChoice(interaction),
 		).resolves.toBeNull();
 	});
 });

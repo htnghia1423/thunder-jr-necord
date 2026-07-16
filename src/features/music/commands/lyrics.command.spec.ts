@@ -35,11 +35,7 @@ describe('LyricsCommand', () => {
 		};
 		musicService = { validateGuildAndGetQueue: jest.fn() };
 		disTubeService = {};
-		command = new LyricsCommand(
-			lyricsService as any,
-			musicService as any,
-			disTubeService as any,
-		);
+		command = new LyricsCommand(lyricsService, musicService, disTubeService);
 	});
 
 	afterEach(() => {
@@ -57,10 +53,7 @@ describe('LyricsCommand', () => {
 			'Is this the real life',
 		]);
 
-		await command.execute(
-			[interaction] as any,
-			{ query: 'Bohemian Rhapsody' } as any,
-		);
+		await command.execute([interaction] as any, { query: 'Bohemian Rhapsody' });
 
 		expect(interaction.deferReply).toHaveBeenCalledTimes(1);
 		expect(lyricsService.getLyrics).toHaveBeenCalledWith('Bohemian Rhapsody');
@@ -90,7 +83,7 @@ describe('LyricsCommand', () => {
 			'All my troubles seemed so far away',
 		]);
 
-		await command.execute([interaction] as any, {} as any);
+		await command.execute([interaction] as any, {});
 
 		expect(lyricsService.getLyricsForSong).toHaveBeenCalledWith(
 			'Yesterday',
@@ -107,7 +100,7 @@ describe('LyricsCommand', () => {
 			message: 'No music queue found',
 		});
 
-		await command.execute([interaction] as any, {} as any);
+		await command.execute([interaction] as any, {});
 
 		expect(lyricsService.getLyricsForSong).not.toHaveBeenCalled();
 		const payload = interaction.editReply.mock.calls[0][0];
@@ -124,7 +117,7 @@ describe('LyricsCommand', () => {
 			queue: { songs: [{ name: '' }] },
 		});
 
-		await command.execute([interaction] as any, {} as any);
+		await command.execute([interaction] as any, {});
 
 		expect(lyricsService.getLyricsForSong).not.toHaveBeenCalled();
 		const payload = interaction.editReply.mock.calls[0][0];
@@ -151,7 +144,7 @@ describe('LyricsCommand', () => {
 		};
 		interaction.editReply = jest.fn().mockResolvedValue(message);
 
-		await command.execute([interaction] as any, { query: 'Long Song' } as any);
+		await command.execute([interaction] as any, { query: 'Long Song' });
 
 		const payload = interaction.editReply.mock.calls[0][0];
 		expect(payload.embeds[0].data.title).toBe('🎤 Lyrics: Long Song');
@@ -172,7 +165,7 @@ describe('LyricsCommand', () => {
 			),
 		);
 
-		await command.execute([interaction] as any, { query: 'X' } as any);
+		await command.execute([interaction] as any, { query: 'X' });
 
 		const payload = interaction.editReply.mock.calls[0][0];
 		expect(payload.embeds[0].data.title).toBe('❌ Error');
@@ -187,7 +180,7 @@ describe('LyricsCommand', () => {
 			new Error('No results found for query'),
 		);
 
-		await command.execute([interaction] as any, { query: 'obscure' } as any);
+		await command.execute([interaction] as any, { query: 'obscure' });
 
 		const payload = interaction.editReply.mock.calls[0][0];
 		expect(payload.embeds[0].data.title).toBe('❌ Error');

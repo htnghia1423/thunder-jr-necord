@@ -67,7 +67,7 @@ describe('LoopCommand', () => {
 		musicService.setLoop.mockResolvedValue({ success: true, message: 'ok' });
 		const interaction = makeInteraction();
 
-		await command.execute([interaction] as any, {} as any);
+		await command.execute([interaction] as any, {});
 
 		expect(musicService.setLoop).toHaveBeenCalledWith(
 			interaction,

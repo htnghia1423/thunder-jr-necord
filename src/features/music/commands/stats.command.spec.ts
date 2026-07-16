@@ -26,7 +26,7 @@ describe('StatsCommand', () => {
 			getServerStats: jest.fn(),
 			getUserStats: jest.fn(),
 		};
-		command = new StatsCommand(statsService as any);
+		command = new StatsCommand(statsService);
 	});
 
 	afterEach(() => {

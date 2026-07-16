@@ -71,8 +71,7 @@ export class PrismaService
 		return Promise.all(
 			models.map((modelKey): Promise<unknown> => {
 				const model = this[modelKey] as
-					| { deleteMany: () => Promise<unknown> }
-					| undefined;
+					{ deleteMany: () => Promise<unknown> } | undefined;
 
 				if (model && typeof model.deleteMany === 'function') {
 					return model.deleteMany();

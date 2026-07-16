@@ -48,9 +48,9 @@ describe('PlaylistCommand', () => {
 		};
 		musicService = { play: jest.fn() };
 		command = new PlaylistCommand(
-			distubeService as any,
-			playlistStorageService as any,
-			musicService as any,
+			distubeService,
+			playlistStorageService,
+			musicService,
 		);
 	});
 
@@ -72,7 +72,7 @@ describe('PlaylistCommand', () => {
 			});
 			playlistStorageService.savePlaylist.mockResolvedValue(undefined);
 
-			await command.save([interaction] as any, { name: 'MyList' } as any);
+			await command.save([interaction] as any, { name: 'MyList' });
 
 			expect(interaction.deferReply).toHaveBeenCalledWith({
 				flags: MessageFlags.Ephemeral,
@@ -90,7 +90,7 @@ describe('PlaylistCommand', () => {
 		it('rejects saving when the user is not in a voice channel', async () => {
 			const interaction = makeInteraction({ voiceChannelId: null });
 
-			await command.save([interaction] as any, { name: 'X' } as any);
+			await command.save([interaction] as any, { name: 'X' });
 
 			expect(playlistStorageService.savePlaylist).not.toHaveBeenCalled();
 			const payload = interaction.editReply.mock.calls[0][0];
@@ -103,7 +103,7 @@ describe('PlaylistCommand', () => {
 				getQueue: jest.fn().mockReturnValue({ songs: [] }),
 			});
 
-			await command.save([interaction] as any, { name: 'X' } as any);
+			await command.save([interaction] as any, { name: 'X' });
 
 			expect(playlistStorageService.savePlaylist).not.toHaveBeenCalled();
 			const payload = interaction.editReply.mock.calls[0][0];
@@ -119,7 +119,7 @@ describe('PlaylistCommand', () => {
 				new Error('db fail'),
 			);
 
-			await command.save([interaction] as any, { name: 'X' } as any);
+			await command.save([interaction] as any, { name: 'X' });
 
 			const payload = interaction.editReply.mock.calls.at(-1)[0];
 			expect(payload.embeds[0].data.description).toContain(
@@ -132,7 +132,7 @@ describe('PlaylistCommand', () => {
 		it('rejects loading when the user is not in a voice channel', async () => {
 			const interaction = makeInteraction({ voiceChannelId: null });
 
-			await command.load([interaction] as any, { name: 'X' } as any);
+			await command.load([interaction] as any, { name: 'X' });
 
 			expect(playlistStorageService.loadPlaylist).not.toHaveBeenCalled();
 			const payload = interaction.editReply.mock.calls[0][0];
@@ -143,7 +143,7 @@ describe('PlaylistCommand', () => {
 			const interaction = makeInteraction();
 			playlistStorageService.loadPlaylist.mockResolvedValue(null);
 
-			await command.load([interaction] as any, { name: 'Missing' } as any);
+			await command.load([interaction] as any, { name: 'Missing' });
 
 			expect(playlistStorageService.loadPlaylist).toHaveBeenCalledWith(
 				'user-1',
@@ -162,10 +162,7 @@ describe('PlaylistCommand', () => {
 			});
 			musicService.play.mockResolvedValue({ success: true, message: 'ok' });
 
-			const promise = command.load(
-				[interaction] as any,
-				{ name: 'RoadTrip' } as any,
-			);
+			const promise = command.load([interaction] as any, { name: 'RoadTrip' });
 			await jest.runAllTimersAsync();
 			await promise;
 			jest.useRealTimers();
@@ -228,7 +225,7 @@ describe('PlaylistCommand', () => {
 			const interaction = makeInteraction();
 			playlistStorageService.deletePlaylist.mockResolvedValue(true);
 
-			await command.delete([interaction] as any, { name: 'Old' } as any);
+			await command.delete([interaction] as any, { name: 'Old' });
 
 			expect(playlistStorageService.deletePlaylist).toHaveBeenCalledWith(
 				'user-1',
@@ -242,7 +239,7 @@ describe('PlaylistCommand', () => {
 			const interaction = makeInteraction();
 			playlistStorageService.deletePlaylist.mockResolvedValue(false);
 
-			await command.delete([interaction] as any, { name: 'Ghost' } as any);
+			await command.delete([interaction] as any, { name: 'Ghost' });
 
 			const payload = interaction.editReply.mock.calls[0][0];
 			expect(payload.embeds[0].data.title).toBe('❌ Error');

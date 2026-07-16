@@ -42,14 +42,14 @@ describe('PlayCommand', () => {
 			play: jest.fn(),
 			validateGuildAndGetQueue: jest.fn(),
 		};
-		command = new PlayCommand(musicService as any);
+		command = new PlayCommand(musicService);
 	});
 
 	it('delegates to musicService.play and replies with an error embed when playback fails', async () => {
 		const interaction = makeInteraction();
 		musicService.play.mockResolvedValue({ success: false, message: 'boom' });
 
-		await command.execute([interaction] as any, { song: 'never gonna' } as any);
+		await command.execute([interaction] as any, { song: 'never gonna' });
 
 		expect(interaction.deferReply).toHaveBeenCalledTimes(1);
 		expect(musicService.play).toHaveBeenCalledWith(interaction, 'never gonna');
@@ -68,7 +68,7 @@ describe('PlayCommand', () => {
 			message: '**Added playlist** with 5 songs',
 		});
 
-		await command.execute([interaction] as any, { song: 'list' } as any);
+		await command.execute([interaction] as any, { song: 'list' });
 
 		expect(interaction.editReply).toHaveBeenCalledWith({
 			content: '**Added playlist** with 5 songs',
@@ -88,7 +88,7 @@ describe('PlayCommand', () => {
 			queue: buildQueue([buildSong()]),
 		});
 
-		await command.execute([interaction] as any, { song: 'test' } as any);
+		await command.execute([interaction] as any, { song: 'test' });
 
 		const payload = interaction.editReply.mock.calls[0][0];
 		expect(payload.embeds).toHaveLength(1);
@@ -114,7 +114,7 @@ describe('PlayCommand', () => {
 			queue: buildQueue(songs),
 		});
 
-		await command.execute([interaction] as any, { song: 'queued' } as any);
+		await command.execute([interaction] as any, { song: 'queued' });
 
 		const payload = interaction.editReply.mock.calls[0][0];
 		expect(payload.embeds[0].data.title).toBe('🎵 Added to Queue');
@@ -138,10 +138,7 @@ describe('PlayCommand', () => {
 			queue: buildQueue([buildSong({ name: 'First Playlist Song' })]),
 		});
 
-		await command.execute(
-			[interaction] as any,
-			{ song: 'playlist url' } as any,
-		);
+		await command.execute([interaction] as any, { song: 'playlist url' });
 
 		const payload = interaction.editReply.mock.calls[0][0];
 		expect(payload.embeds[0].data.title).toBe('📋 Now Playing Playlist');
@@ -164,7 +161,7 @@ describe('PlayCommand', () => {
 			message: 'No music queue found',
 		});
 
-		await command.execute([interaction] as any, { song: 'test' } as any);
+		await command.execute([interaction] as any, { song: 'test' });
 
 		expect(interaction.editReply).toHaveBeenCalledWith({
 			content: 'Started playing',

@@ -34,7 +34,7 @@ describe('QueueCommand', () => {
 
 	beforeEach(() => {
 		musicService = { validateGuildAndGetQueue: jest.fn() };
-		command = new QueueCommand(musicService as any);
+		command = new QueueCommand(musicService);
 	});
 
 	it('replies with an error embed when there is no queue', async () => {

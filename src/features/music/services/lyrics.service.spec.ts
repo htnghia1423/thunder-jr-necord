@@ -41,7 +41,7 @@ describe('LyricsService', () => {
 		// Fresh instance per test avoids the internal lyrics cache leaking across tests.
 		service = new LyricsService();
 		fetchMock = jest.fn();
-		global.fetch = fetchMock as unknown as typeof fetch;
+		global.fetch = fetchMock;
 	});
 
 	describe('getLyrics', () => {
