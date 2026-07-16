@@ -180,7 +180,7 @@ export class LyricsService {
 		}
 
 		const pendingLookup = this.pendingLookups.get(cacheKey);
-		if (pendingLookup) {
+		if (pendingLookup !== undefined) {
 			this.logger.debug(`Lyrics lookup already pending: ${cacheKey}`);
 			return pendingLookup;
 		}
@@ -328,22 +328,7 @@ export class LyricsService {
 		for (const query of queries) {
 			try {
 				if (metadata) {
-					const results = await this.fetchSearchResults(query);
-
-					if (!Array.isArray(results) || results.length === 0) {
-						this.logger.warn(`No results found for query: "${query}"`);
-						throw this.createNotFoundError(originalQuery);
-					}
-
-					const matchedTrack = this.findRelevantTrack(results, metadata);
-					if (!matchedTrack) {
-						this.logger.warn(
-							`Rejected ${results.length} LRCLIB result(s) for query "${query}" because none matched "${metadata.trackName}"`,
-						);
-						throw this.createUnreliableMatchError(originalQuery);
-					}
-
-					return this.buildResult(matchedTrack);
+					return await this.fetchMatchedTrack(query, originalQuery, metadata);
 				}
 
 				return await this.fetchBySearch(query, originalQuery);
@@ -359,6 +344,33 @@ export class LyricsService {
 		}
 
 		throw lastError || this.createNotFoundError(originalQuery);
+	}
+
+	/**
+	 * Fetch search results for a query and return the first track that
+	 * reliably matches the given metadata, or throw a descriptive error.
+	 */
+	private async fetchMatchedTrack(
+		query: string,
+		originalQuery: string,
+		metadata: SongMetadata,
+	): Promise<LyricsResult> {
+		const results = await this.fetchSearchResults(query);
+
+		if (!Array.isArray(results) || results.length === 0) {
+			this.logger.warn(`No results found for query: "${query}"`);
+			throw this.createNotFoundError(originalQuery);
+		}
+
+		const matchedTrack = this.findRelevantTrack(results, metadata);
+		if (!matchedTrack) {
+			this.logger.warn(
+				`Rejected ${results.length} LRCLIB result(s) for query "${query}" because none matched "${metadata.trackName}"`,
+			);
+			throw this.createUnreliableMatchError(originalQuery);
+		}
+
+		return this.buildResult(matchedTrack);
 	}
 
 	/**
@@ -504,7 +516,7 @@ export class LyricsService {
 
 		// Remove producer credits and everything after them.
 		cleaned = cleaned.replaceAll(
-			/\s+(?:prod\.?|produced by|beat by)\s+.*$/gi,
+			/(?<=\s)(?:prod\.?|produced by|beat by)\s.*$/gi,
 			'',
 		);
 
@@ -580,7 +592,7 @@ export class LyricsService {
 	 */
 	private cleanArtistName(artistName: string): string {
 		return artistName
-			.replaceAll(/\s*\/\/.*$/g, '')
+			.replaceAll(/\/\/.*$/g, '')
 			.replaceAll(/\s*-\s*Topic$/gi, '')
 			.replaceAll(/\s*VEVO$/gi, '')
 			.replaceAll(/\s+Official$/gi, '')
